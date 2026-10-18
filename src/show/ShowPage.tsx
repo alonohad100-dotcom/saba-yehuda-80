@@ -1,0 +1,90 @@
+import { useEffect, useRef, useState } from 'react';
+import { Play, Maximize2, Pause, Volume2, VolumeX, SkipBack, SkipForward, Square, Palette } from 'lucide-react';
+import { themeById, THEMES } from '@shared/themes';
+import { useShow } from '@/store/show';
+import { useLibrary } from '@/store/library';
+import { Player, type PlayerState } from './engine';
+import { fmtTime, slideSeconds } from '@shared/model';
+
+export const CHANNEL = 'sy80';
+
+export function ShowPage() {
+  const show = useShow(s => s.show); const load = useShow(s => s.load);
+  const assets = useLibrary(s => s.assets); const loadLib = useLibrary(s => s.load); const loaded = useLibrary(s => s.loaded);
+  const host = useRef<HTMLDivElement>(null); const player = useRef<Player | null>(null);
+  const [st, setSt] = useState<PlayerState | null>(null); const [hud, setHud] = useState(true); const hudTimer = useRef<number>(0);
+  const [progress, setProgress] = useState(0);
+  useEffect(() => { void load(); void loadLib(); document.title = 'סבא יהודה 80 · מצגת'; }, [load, loadLib]);
+
+  // create the player once data is present
+  useEffect(() => {
+    if (!show || !loaded || !host.current || player.current) return;
+    const p = new Player(host.current, () => useShow.getState().show, () => useLibrary.getState().assets);
+    player.current = p;
+    const bc = new BroadcastChannel(CHANNEL);
+    const off = p.on(s => { setSt({ ...s }); bc.postMessage({ kind: 'state', state: s, elapsed: p.elapsed(), remaining: p.remaining() }); });
+    bc.onmessage = (e) => { const m = e.data; if (m?.kind === 'hello') { bc.postMessage({ kind: 'state', state: p.state(), elapsed: p.elapsed(), remaining: p.remaining() }); return; } if (m?.kind !== 'cmd') return; if (m.cmd === 'theme') { p.setLiveTheme(m.id ?? null); return; } if (!p.started) return; ({ next: () => p.next(), prev: () => p.prev(), pause: () => p.pause(), black: () => p.toggleBlack(), mute: () => p.toggleMute(), goto: () => m.id && p.goToId(m.id), restart: () => p.restart() } as Record<string, () => void>)[m.cmd]?.(); };
+    p.applyTheme(); setSt(p.state());
+    const tick = setInterval(() => { if (p.started) bc.postMessage({ kind: 'tick', elapsed: p.elapsed(), remaining: p.remaining(), idx: p.idx }); }, 1000);
+    p.audio!.onMeter = () => {};
+    return () => { off(); clearInterval(tick); bc.close(); p.destroy(); player.current = null; };
+  }, [show, loaded]);
+
+  // progress bar for the current slide
+  useEffect(() => { if (!st?.started || st.manual || st.paused) { setProgress(0); return; } const t0 = performance.now(); const id = setInterval(() => setProgress(Math.min(100, (performance.now() - t0) / 1000 / Math.max(.1, st.seconds) * 100)), 100); return () => clearInterval(id); }, [st?.slideId, st?.paused, st?.started, st?.manual, st?.seconds]);
+
+  // keyboard: clicker keys + letters
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { const p = player.current; if (!p) return; const k = e.key;
+      if (!p.started) { if (k === ' ' || k === 'Enter') { e.preventDefault(); start(); } return; }
+      if ([' ', 'ArrowRight', 'PageDown', 'Enter', 'ArrowDown'].includes(k)) { e.preventDefault(); p.next(); }
+      else if (['ArrowLeft', 'PageUp', 'Backspace', 'ArrowUp'].includes(k)) { e.preventDefault(); p.prev(); }
+      else if (k === 'p' || k === 'P' || k === 'פ') p.pause(); else if (k === 'b' || k === 'B' || k === '.' || k === 'נ') p.toggleBlack(); else if (k === 'm' || k === 'M' || k === 'צ') p.toggleMute(); else if (k === 'f' || k === 'F' || k === 'כ') p.fullscreen(); else if (k === 'Home') p.go(0, 'dip'); else if (k === 'End') p.go(p.list().length - 1, 'dip')
+      else if (k === 't' || k === 'T' || k === 'א') p.cycleTheme(e.shiftKey ? -1 : 1); else if (k === '0') p.setLiveTheme(null); };
+    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
+  });
+  // HUD shows on mouse movement, hides after a moment
+  useEffect(() => { const onMove = () => { setHud(true); window.clearTimeout(hudTimer.current); hudTimer.current = window.setTimeout(() => setHud(false), 2600); }; window.addEventListener('mousemove', onMove); onMove(); return () => window.removeEventListener('mousemove', onMove); }, []);
+
+  const start = () => { const p = player.current; if (!p) return; const from = new URLSearchParams(location.search).get('from') || undefined; p.start(from); void p.root.requestFullscreen?.().catch(() => {}); void (navigator as any).wakeLock?.request?.('screen').catch(() => {}); };
+
+  const total = show ? show.chapters.reduce((t, c) => t + c.slides.reduce((u, s) => u + slideSeconds(s, c, show.settings, assets), 0), 0) : 0;
+  const slides = show ? show.chapters.reduce((n, c) => n + c.slides.length, 0) : 0;
+  const missing = show ? show.chapters.flatMap(c => c.slides).filter(s => ('assetId' in s && !assets[(s as any).assetId])).length : 0;
+  const themeNow = st?.theme ?? show?.settings.theme ?? 'midnight-gold';
+  return (
+    <div className="showpage" data-theme={themeNow}>
+      <div ref={host} className={`player ${hud || !st?.started ? 'idle' : ''}`} tabIndex={0} onClick={(e) => { const p = player.current; if (p?.started && !(e.target as HTMLElement).closest('button')) p.next(); }} />
+      {!st?.started && (
+        <div className="startgate">
+          <div className="inner">
+            <div className="name">{show?.meta.title ?? 'סבא יהודה'}</div>
+            <div className="big">80</div>
+            <button className="btn primary" onClick={start} disabled={!show || !loaded}><Play /> התחל את המצגת</button>
+            <div className="meta"><span>{slides} שקופיות</span><span className="num">{fmtTime(total)}</span><span>{Object.keys(assets).length} קבצי מדיה</span></div>
+            {missing > 0 && <div className="warn">⚠ {missing} שקופיות מצביעות על קבצים שלא נמצאו בספרייה</div>}
+            <div className="meta"><span><kbd>Space</kbd> / <kbd>→</kbd> הבא</span><span><kbd>←</kbd> הקודם</span><span><kbd>P</kbd> השהה</span><span><kbd>B</kbd> שחור</span><span><kbd>M</kbd> השתק</span><span><kbd>F</kbd> מסך מלא</span><span><kbd>T</kbd> ערכת צבעים</span></div>
+            <div className="meta"><span className="theme-mini"><i style={{ background: themeById(themeNow).accent }} /> ערכה: {themeById(themeNow).name}</span></div>
+          </div>
+        </div>
+      )}
+      {st?.started && (
+        <div className={`hud ${hud || st.paused || st.ended ? 'on' : ''}`} onClick={e => e.stopPropagation()}>
+          <span className="num">{st.idx + 1} / {st.total}</span>
+          <span>{st.chapterTitle}</span>
+          <div className="bar"><i style={{ width: st.manual ? '100%' : `${progress}%`, opacity: st.manual ? .3 : 1 }} /></div>
+          <span className="muted">{st.paused ? 'מושהה' : st.manual ? 'ממתין ללחיצה' : fmtTime(st.seconds)}</span>
+          <button className="btn sm icon" onClick={() => player.current?.prev()} title="הקודם"><SkipBack /></button>
+          <button className="btn sm icon" onClick={() => player.current?.pause()} title="השהה">{st.paused ? <Play /> : <Pause />}</button>
+          <button className="btn sm icon" onClick={() => player.current?.next()} title="הבא"><SkipForward /></button>
+          <button className="btn sm icon" onClick={() => player.current?.toggleBlack()} title="מסך שחור"><Square /></button>
+          <button className="btn sm icon" onClick={() => player.current?.toggleMute()} title="השתק מוזיקה">{st.muted ? <VolumeX /> : <Volume2 />}</button>
+          <button className="btn sm icon" onClick={() => player.current?.cycleTheme(1)} title={`ערכת צבעים: ${themeById(st.theme).name} (T לערכה הבאה, 0 לחזרה)`}><Palette /></button>
+          <span className="theme-mini" style={{ fontSize: 11 }}><i style={{ background: themeById(st.theme).accent }} />{themeById(st.theme).name}{st.liveTheme ? ' · זמני' : ''}</span>
+        </div>
+      )}
+      <select aria-label="theme" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 1, height: 1 }} value={themeNow} onChange={e => player.current?.setLiveTheme(e.target.value)}>{THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+      {st?.ended && <div className="endcard">סוף המצגת · <kbd>Home</kbd> להתחלה מחדש</div>}
+    </div>
+  );
+}

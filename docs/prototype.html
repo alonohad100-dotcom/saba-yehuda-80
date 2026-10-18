@@ -1,0 +1,1147 @@
+<title>Saba Yehuda 80</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700;900&family=Heebo:wght@300;400;500;600;700&family=Suez+One&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+/* Layout concept: a dark production-suite shell (like a video editor) that frames three "screens" of the real app;
+   long-form analysis and plan sections sit below the screens in a single reading column. Dark-first, single look. */
+:root{
+  --bg:#0d0e13; --panel:#14161d; --panel2:#1b1e27; --panel3:#232736; --line:#2b2f3c; --line2:#3a3f4f;
+  --fg:#ece6d8; --fg2:#cfc8b8; --muted:#8f8b7d; --gold:#d4a84b; --gold2:#f1d38a; --gold-dim:rgba(212,168,75,.18);
+  --ok:#6fbf8a; --warn:#e0a84a; --bad:#e06c6c; --info:#7aa7d6;
+  --display:'Frank Ruhl Libre','David Libre',Georgia,'Times New Roman',serif;
+  --ui:'Heebo','Segoe UI',Arial,sans-serif;
+  --num:'Suez One','Frank Ruhl Libre',Georgia,serif;
+  --r:10px; --r-sm:6px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+a{color:var(--gold2)}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--panel3);border:1px solid var(--line2);border-radius:var(--r-sm);padding:6px 9px}
+input:focus,select:focus,textarea:focus,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+h1,h2,h3,h4{font-family:var(--display);font-weight:500;line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(34px,5vw,56px)}
+h2{font-size:clamp(26px,3.2vw,36px)}
+h3{font-size:22px}
+h4{font-size:17px;font-family:var(--ui);font-weight:600}
+p{margin:0}
+code,kbd{font-family:ui-monospace,Consolas,monospace;font-size:.9em;background:var(--panel3);padding:1px 6px;border-radius:4px}
+kbd{border:1px solid var(--line2);border-bottom-width:2px}
+.wrap{max-width:1280px;margin:0 auto}
+.reading{max-width:860px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.muted{color:var(--muted)}
+.he{direction:rtl;font-family:var(--display)}
+.tabular{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:rgba(13,14,19,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);margin:0 -16px;padding:0 16px}
+.topbar .wrap{display:flex;align-items:center;gap:18px;min-height:56px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;font-family:var(--display);font-size:20px}
+.brand b{font-family:var(--num);color:var(--gold);font-weight:400;font-size:24px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{background:none;border:0;padding:8px 12px;border-radius:999px;color:var(--fg2);font-weight:500;font-size:14px}
+.tab[aria-selected="true"]{background:var(--gold-dim);color:var(--gold2)}
+.tab:hover{color:var(--fg)}
+.view{display:none;padding-top:28px}
+.view.active{display:block}
+
+/* overview */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center;padding:28px 0 36px;border-bottom:1px solid var(--line)}
+@media (max-width:900px){.hero{grid-template-columns:1fr}}
+.hero-title{font-family:var(--display);font-weight:300;font-size:clamp(38px,5.4vw,66px);line-height:1.05}
+.hero-title .num{font-family:var(--num);color:var(--gold);font-size:1.25em}
+.hero p.lead{font-size:18px;color:var(--fg2);margin-top:16px;max-width:60ch}
+.statrow{display:flex;gap:28px;flex-wrap:wrap;margin-top:22px}
+.stat{min-width:0}
+.stat .v{font-family:var(--num);font-size:30px;color:var(--gold2);line-height:1}
+.stat .l{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:6px}
+.hero-stage{position:relative;aspect-ratio:16/9;max-width:100%;container-type:inline-size;direction:rtl;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px var(--line2)}
+.screens{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;padding:34px 0}
+.screen{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:0;overflow:hidden;text-align:left;display:flex;flex-direction:column}
+.screen:hover{border-color:var(--gold)}
+.screen .thumb{aspect-ratio:16/9;background:var(--panel2);position:relative;overflow:hidden}
+.screen .meta{padding:14px 16px 16px}
+.screen .meta h3{font-size:19px}
+.screen .meta p{color:var(--muted);font-size:14px;margin-top:6px}
+
+/* shared app frame (dir=rtl) */
+.app{direction:rtl;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.app-bar{display:flex;align-items:center;gap:14px;padding:8px 14px;background:var(--panel2);border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.app-bar .title{font-family:var(--display);font-size:16px}
+.app-bar .spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;border:1px solid var(--line2);background:var(--panel3);color:var(--fg2)}
+.pill.ok{border-color:rgba(111,191,138,.4);color:var(--ok)}
+.pill.warn{border-color:rgba(224,168,74,.45);color:var(--warn)}
+.pill.bad{border-color:rgba(224,108,108,.45);color:var(--bad)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.btn{border:1px solid var(--line2);background:var(--panel3);border-radius:var(--r-sm);padding:6px 12px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--gold);color:var(--gold2)}
+.btn.primary{background:var(--gold);color:#1a1405;border-color:var(--gold)}
+.btn.primary:hover{background:var(--gold2);color:#1a1405}
+.btn.ghost{background:none}
+.btn.sm{padding:3px 8px;font-size:12px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* editor layout */
+.editor{display:grid;grid-template-columns:300px 1fr 300px;grid-template-rows:minmax(300px,46vh) 230px;height:auto}
+.editor>*{min-width:0}
+@media (max-width:1100px){.editor{grid-template-columns:1fr 1fr;grid-template-rows:auto}.ed-preview{grid-column:1/-1;order:-1}.ed-story{grid-column:1/-1}}
+@media (max-width:640px){.editor{grid-template-columns:1fr}}
+.panel{background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.panel-h{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;font-weight:600;color:var(--fg2)}
+.panel-h .count{margin-inline-start:auto;color:var(--muted);font-weight:400}
+.panel-b{padding:10px 12px;overflow:auto;flex:1;min-height:0}
+.ed-lib{border-inline-start:1px solid var(--line)}
+.ed-insp{border-inline-end:1px solid var(--line)}
+.ed-story{grid-column:1/-1;border-top:1px solid var(--line)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--line2);background:var(--panel2);border-radius:999px;padding:3px 10px;font-size:12px}
+.chip[aria-pressed="true"]{background:var(--gold-dim);border-color:var(--gold);color:var(--gold2)}
+.libgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.asset{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:var(--panel3);border:2px solid transparent;cursor:pointer;padding:0}
+.asset img{width:100%;height:100%;object-fit:cover;display:block}
+.asset.sel{border-color:var(--gold)}
+.asset .yr{position:absolute;bottom:4px;inset-inline-start:5px;font-size:10px;background:rgba(0,0,0,.6);padding:1px 5px;border-radius:4px;font-variant-numeric:tabular-nums}
+.asset .use{position:absolute;top:4px;inset-inline-end:4px;font-size:10px;background:var(--gold);color:#1a1405;border-radius:999px;min-width:16px;height:16px;display:grid;place-items:center;font-weight:700}
+.asset .vid{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:22px;text-shadow:0 2px 8px #000}
+.asset .nm{position:absolute;bottom:4px;inset-inline-start:5px;inset-inline-end:5px;font-size:11px;background:rgba(0,0,0,.6);padding:1px 5px;border-radius:4px;font-family:var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.libfoot{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line);flex-wrap:wrap}
+
+.ed-preview{display:flex;flex-direction:column;background:#000;position:relative}
+.stage-wrap{flex:1;display:grid;place-items:center;padding:14px;min-height:0;background:radial-gradient(ellipse at center,#15171f,#0a0b0f)}
+.stage{position:relative;aspect-ratio:16/9;width:100%;max-width:100%;background:#000;border-radius:6px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6);direction:rtl}
+.stage-foot{display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--line);background:var(--panel2);font-size:12px;color:var(--muted);flex-wrap:wrap}
+.focal-hint{position:absolute;inset-inline-end:10px;top:10px;font-size:11px;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:4px;color:var(--fg2);pointer-events:none}
+.focal-dot{position:absolute;width:18px;height:18px;border:2px solid var(--gold);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.5);pointer-events:none}
+
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field label{font-size:12px;color:var(--muted)}
+.field textarea{min-height:60px;resize:vertical;font-family:var(--display);font-size:15px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg{display:flex;border:1px solid var(--line2);border-radius:var(--r-sm);overflow:hidden}
+.seg button{flex:1;border:0;background:var(--panel2);padding:5px;font-size:12px}
+.seg button[aria-pressed="true"]{background:var(--gold-dim);color:var(--gold2)}
+.kb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.kb-grid button{aspect-ratio:1.4;border:1px solid var(--line2);background:var(--panel2);border-radius:4px;font-size:14px}
+.kb-grid button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold2);background:var(--gold-dim)}
+input[type=range]{width:100%;accent-color:var(--gold)}
+.checks{display:flex;flex-direction:column;gap:6px;font-size:12px}
+.check{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:6px;background:var(--panel2);border-inline-start:3px solid var(--warn)}
+.check.ok{border-color:var(--ok)}
+.check.bad{border-color:var(--bad)}
+
+/* storyboard */
+.story{display:flex;flex-direction:column;gap:8px;padding:10px 12px;overflow:auto;flex:1}
+.chapter{display:flex;align-items:stretch;gap:8px}
+.ch-head{flex:0 0 150px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:4px;cursor:pointer}
+.ch-head.sel{border-color:var(--gold)}
+.ch-head .t{font-family:var(--display);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-head .m{font-size:11px;color:var(--muted);display:flex;gap:8px}
+.ch-head select{font-size:11px;padding:2px 4px}
+.slides{display:flex;gap:6px;overflow-x:auto;padding:2px;flex:1;min-width:0}
+.slide{flex:0 0 112px;height:76px;border-radius:5px;overflow:hidden;position:relative;border:2px solid transparent;background:var(--panel3);cursor:grab;padding:0}
+.slide.sel{border-color:var(--gold)}
+.slide.dragover{outline:2px dashed var(--gold2)}
+.slide img{width:100%;height:100%;object-fit:cover;display:block;opacity:.9}
+.slide .ty{position:absolute;top:3px;inset-inline-start:4px;font-size:10px;background:rgba(0,0,0,.65);padding:0 5px;border-radius:3px;color:var(--gold2)}
+.slide .du{position:absolute;bottom:3px;inset-inline-end:4px;font-size:10px;background:rgba(0,0,0,.65);padding:0 5px;border-radius:3px;font-variant-numeric:tabular-nums}
+.slide .cap{position:absolute;bottom:3px;inset-inline-start:4px;max-width:60%;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--display)}
+.slide.textslide{display:grid;place-items:center;font-family:var(--display);font-size:13px;padding:4px;text-align:center;background:linear-gradient(135deg,#1b1d2a,#2a2436)}
+.addslide{flex:0 0 40px;height:76px;border:1px dashed var(--line2);border-radius:5px;background:none;color:var(--muted);font-size:20px}
+.story-foot{display:flex;gap:14px;align-items:center;padding:6px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);flex-wrap:wrap}
+.musicbar{height:6px;background:var(--panel3);border-radius:3px;overflow:hidden;position:relative;margin-top:2px}
+.musicbar i{position:absolute;inset-block:0;inset-inline-start:0;background:var(--gold);opacity:.8}
+.musicbar.short i{background:var(--warn)}
+
+/* show stage shared pieces */
+.show-shell{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+@media (max-width:1000px){.show-shell{grid-template-columns:1fr}}
+.player{position:relative;aspect-ratio:16/9;max-width:100%;background:#000;border-radius:14px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px var(--line2);direction:rtl;outline:none}
+.player:fullscreen{border-radius:0;aspect-ratio:auto;width:100vw;height:100vh}
+.player .layer{position:absolute;inset:0}
+.hud{position:absolute;inset-inline:0;bottom:0;padding:10px 16px;display:flex;align-items:center;gap:10px;font-size:12px;color:#ddd;background:linear-gradient(transparent,rgba(0,0,0,.6));opacity:0;transition:opacity .3s;pointer-events:none;direction:ltr}
+.player:hover .hud,.player.paused .hud{opacity:1}
+.hud .bar{flex:1;height:3px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden}
+.hud .bar i{display:block;height:100%;background:var(--gold);width:0}
+.startgate{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 60%,#1a1b26,#07070a);z-index:5}
+.startgate .inner{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+.startgate .big{font-family:var(--num);font-size:clamp(70px,16vw,160px);color:var(--gold);line-height:1;text-shadow:0 0 60px rgba(212,168,75,.35)}
+.startgate .name{font-family:var(--display);font-size:clamp(22px,4vw,40px);font-weight:300;letter-spacing:.1em}
+.startgate button{font-size:16px;padding:10px 26px}
+.side{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;align-items:center}
+.vu{display:flex;gap:10px;align-items:center;font-size:12px}
+.vu .m{flex:1;height:8px;background:var(--panel3);border-radius:4px;overflow:hidden}
+.vu .m i{display:block;height:100%;background:var(--gold);width:70%;transition:width .4s}
+
+/* slide visuals */
+.sl{position:absolute;inset:0;overflow:hidden;background:#000;color:#f3ecd9;font-family:var(--display)}
+.sl .img{position:absolute;inset:-6%;width:112%;height:112%;object-fit:cover;transform-origin:center}
+.sl .vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55));pointer-events:none}
+.sl .grain{position:absolute;inset:0;opacity:.07;mix-blend-mode:overlay;pointer-events:none}
+.sl .cap{position:absolute;inset-inline:6%;bottom:8%;font-size:clamp(14px,2.6cqw,40px);font-weight:400;text-shadow:0 2px 20px rgba(0,0,0,.9);display:flex;align-items:baseline;gap:.6em;flex-wrap:wrap}
+.sl .cap .yr{font-family:var(--num);color:var(--gold2);font-size:.75em;direction:ltr;unicode-bidi:isolate}
+.sl .cap .rule{width:2.2em;height:2px;background:var(--gold);align-self:center}
+.player{container-type:inline-size}
+.stage{container-type:inline-size}
+.sl.intro{background:radial-gradient(ellipse at 50% 60%,#1c1d2b,#06060a)}
+.sl .center{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.sl .intro-name{font-weight:300;font-size:clamp(20px,6cqw,90px);letter-spacing:.12em}
+.sl .intro-num{font-family:var(--num);font-size:clamp(60px,22cqw,330px);color:var(--gold);line-height:.95;text-shadow:0 0 80px rgba(212,168,75,.35);direction:ltr}
+.sl .intro-sub{font-size:clamp(11px,2.3cqw,34px);color:#cfc8b8;letter-spacing:.06em;margin-top:.6em}
+.sl .ch-label{position:absolute;inset-inline-start:7%;bottom:14%;max-width:70%}
+.sl .ch-label .eb{font-size:clamp(10px,1.6cqw,24px);letter-spacing:.2em;color:var(--gold);font-family:var(--ui);font-weight:600}
+.sl .ch-label .t{font-size:clamp(22px,6.5cqw,96px);font-weight:500;line-height:1.05;margin-top:.2em;text-shadow:0 4px 30px rgba(0,0,0,.8)}
+.sl .ch-label .b{font-size:clamp(11px,2.2cqw,32px);color:#d9d2c0;margin-top:.5em;font-weight:300}
+.sl .ch-label .rule{height:2px;width:4em;background:var(--gold);margin-top:1em}
+.sl .shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.2) 55%,transparent)}
+.sl.quote{background:radial-gradient(ellipse at 30% 30%,#1a1a26,#07070a)}
+.sl .q{font-size:clamp(16px,4.2cqw,64px);font-weight:300;line-height:1.35;max-width:78%;margin:auto}
+.sl .q .w{display:inline-block;margin-inline-end:.28em}
+.sl .q-by{display:block;font-size:.5em;color:var(--gold2);margin-top:1.2em;font-family:var(--ui);font-weight:500}
+.sl .pair{position:absolute;inset:7% 6%;display:grid;grid-template-columns:1fr 1fr;gap:3%}
+.sl .pair .ph{position:relative;overflow:hidden;border-radius:.4cqw;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.sl .pair .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.sl .pair .ph .tag{position:absolute;top:5%;inset-inline-start:5%;font-family:var(--num);color:var(--gold2);font-size:clamp(12px,3cqw,44px);text-shadow:0 2px 12px #000;direction:ltr}
+.sl .grid{position:absolute;inset:6%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:1.4%}
+.sl .grid .ph{position:relative;overflow:hidden;border-radius:.4cqw;box-shadow:0 14px 40px rgba(0,0,0,.6)}
+.sl .grid .ph:first-child{grid-row:1/3;grid-column:1/3}
+.sl .grid .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.sl.video{background:#000}
+.sl .vbg{position:absolute;inset:-10%;width:120%;height:120%;object-fit:cover;filter:blur(30px) brightness(.35)}
+.sl .vframe{position:absolute;inset:5% 30%;overflow:hidden;border-radius:.6cqw;box-shadow:0 30px 80px rgba(0,0,0,.7);background:#111}
+.sl .vframe img{width:100%;height:100%;object-fit:cover;display:block}
+.sl .vframe .play{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:clamp(20px,6cqw,80px);text-shadow:0 2px 20px #000;opacity:.9}
+.sl .vframe .vprog{position:absolute;bottom:0;inset-inline:0;height:.5cqw;background:rgba(255,255,255,.2)}
+.sl .vframe .vprog i{display:block;height:100%;background:var(--gold);width:0}
+.sl .lower{position:absolute;inset-inline-start:6%;bottom:9%;display:flex;flex-direction:column;gap:.2em}
+.sl .lower .nm{font-size:clamp(16px,3.6cqw,56px);font-weight:500;text-shadow:0 2px 16px #000}
+.sl .lower .rel{font-family:var(--ui);font-size:clamp(10px,1.5cqw,22px);color:var(--gold2);letter-spacing:.08em}
+.sl .lower .bar{height:3px;width:6em;background:var(--gold)}
+.sl .tl{position:absolute;inset:0}
+.sl .tl .line{position:absolute;inset-inline:8%;top:55%;height:2px;background:rgba(241,211,138,.5);transform-origin:right center}
+.sl .tl .ms{position:absolute;top:55%;transform:translate(50%,-50%);display:flex;flex-direction:column;align-items:center;gap:.5cqw}
+.sl .tl .ms .d{width:1.4cqw;height:1.4cqw;border-radius:50%;background:var(--gold);box-shadow:0 0 0 .5cqw rgba(212,168,75,.25)}
+.sl .tl .ms .y{font-family:var(--num);color:var(--gold2);font-size:clamp(11px,2.4cqw,34px);direction:ltr}
+.sl .tl .ms .l{font-size:clamp(9px,1.6cqw,24px);color:#e7e0cf;white-space:nowrap}
+.sl .tl .ms img{width:7cqw;height:7cqw;object-fit:cover;border-radius:.4cqw;box-shadow:0 8px 24px rgba(0,0,0,.6);margin-bottom:.4cqw}
+.sl .tl .ms:nth-child(even){flex-direction:column-reverse;transform:translate(50%,-50%)}
+.sl .tl .ms:nth-child(even) img{margin:.4cqw 0 0}
+.sl .tl .tt{position:absolute;top:14%;inset-inline:0;text-align:center;font-size:clamp(16px,4cqw,60px);font-weight:400}
+.sl .names{position:absolute;inset:14% 8% 10%;display:flex;flex-wrap:wrap;gap:3% 2%;align-content:center;justify-content:center}
+.sl .names .p{display:flex;flex-direction:column;align-items:center;gap:.6cqw;width:12cqw}
+.sl .names .p img{width:10cqw;height:10cqw;border-radius:50%;object-fit:cover;border:.3cqw solid var(--gold);box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.sl .names .p span{font-size:clamp(9px,1.9cqw,28px)}
+.sl .mosaic{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(4,1fr);gap:.4%}
+.sl .mosaic img{width:100%;height:100%;object-fit:cover;opacity:.55}
+.sl .fin{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.sl .fin .n{font-family:var(--num);font-size:clamp(70px,26cqw,380px);color:var(--gold);line-height:.9;text-shadow:0 0 90px rgba(212,168,75,.5);direction:ltr}
+.sl .fin .t{font-size:clamp(14px,3.4cqw,52px);font-weight:300;margin-top:.4em}
+.sl.black{background:#000}
+.sl .tiny{position:absolute;bottom:6%;inset-inline:0;text-align:center;color:#777;font-size:clamp(10px,1.6cqw,22px);font-family:var(--ui)}
+
+/* presenter */
+.presenter{direction:rtl;display:grid;grid-template-columns:1.4fr 1fr;grid-template-rows:auto auto;gap:14px;background:#0a0b0f;border:1px solid var(--line);border-radius:14px;padding:16px}
+@media (max-width:800px){.presenter{grid-template-columns:1fr}}
+.pr-cur,.pr-next{background:#000;border-radius:8px;overflow:hidden;position:relative;aspect-ratio:16/9;max-width:100%;container-type:inline-size;direction:rtl}
+.pr-lab{position:absolute;top:8px;inset-inline-start:10px;font-size:11px;background:rgba(0,0,0,.65);padding:2px 8px;border-radius:4px;z-index:2;color:var(--gold2)}
+.pr-info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pr-info .k{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.pr-info .k .v{font-family:var(--num);font-size:30px;color:var(--gold2);line-height:1;direction:ltr;text-align:right}
+.pr-info .k .l{font-size:11px;color:var(--muted);margin-top:4px}
+.pr-notes{grid-column:1/-1;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-family:var(--display);font-size:16px;min-height:60px}
+.pr-list{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.pr-list span{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--panel3);border:1px solid var(--line2);color:var(--fg2)}
+.pr-list span.cur{background:var(--gold-dim);border-color:var(--gold);color:var(--gold2)}
+
+/* ingest */
+.ingest{direction:rtl;display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media (max-width:900px){.ingest{grid-template-columns:1fr}}
+.prog{height:10px;background:var(--panel3);border-radius:5px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s}
+.log{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:#07080b;border:1px solid var(--line);border-radius:8px;padding:10px 12px;height:260px;overflow:auto;direction:ltr;color:#b9b4a5;white-space:pre-wrap}
+.log .ok{color:var(--ok)}.log .warn{color:var(--warn)}.log .bad{color:var(--bad)}.log .dim{color:#666}
+.stepper{display:grid;gap:8px}
+.step{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;font-size:13px}
+.step .n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--panel3);font-size:12px;color:var(--muted)}
+.step.done .n{background:var(--ok);color:#06110a}
+.step.run .n{background:var(--gold);color:#1a1405}
+.step .s{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.dropzone{border:1px dashed var(--line2);border-radius:10px;padding:18px;text-align:center;color:var(--muted);font-size:13px;background:var(--panel2)}
+.dropzone b{color:var(--fg)}
+
+/* reading sections */
+.section{padding:40px 0;border-top:1px solid var(--line)}
+.section .reading p+p{margin-top:12px}
+.section h2{margin-bottom:14px}
+.section h3{margin:28px 0 10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+.tbl{overflow-x:auto;margin:14px 0}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+td b{color:var(--gold2);font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;font-size:14px}
+.note h4{margin-bottom:6px}
+ul,ol{margin:8px 0 0;padding-inline-start:22px}
+li{margin:4px 0}
+.diagram{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px;overflow-x:auto;margin:14px 0}
+.diagram svg{display:block;min-width:720px;width:100%;height:auto}
+.plan-day{display:grid;grid-template-columns:120px 1fr;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+@media (max-width:640px){.plan-day{grid-template-columns:1fr}}
+.plan-day .d{font-family:var(--display);font-size:20px}
+.plan-day .d small{display:block;font-family:var(--ui);font-size:12px;color:var(--muted)}
+.plan-day label{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin:4px 0;cursor:pointer}
+.plan-day input{margin-top:4px;accent-color:var(--gold)}
+.plan-day .acc{margin-top:8px;font-size:13px;color:var(--fg2);padding:8px 10px;background:var(--panel);border-inline-start:3px solid var(--gold);border-radius:4px}
+.risk{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.sev{font-size:11px;font-weight:700;letter-spacing:.08em;padding:2px 8px;border-radius:4px;margin-top:2px}
+.sev.h{background:rgba(224,108,108,.18);color:var(--bad)}.sev.m{background:rgba(224,168,74,.18);color:var(--warn)}.sev.l{background:rgba(111,191,138,.18);color:var(--ok)}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));inset-inline-start:50%;transform:translateX(-50%);background:var(--panel3);border:1px solid var(--gold);color:var(--gold2);padding:8px 16px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<header class="topbar"><div class="wrap">
+  <div class="brand"><span>סבא יהודה</span><b>80</b><span class="muted" style="font-family:var(--ui);font-size:13px">prototype &amp; plan</span></div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" data-view="overview" aria-selected="true">Overview</button>
+    <button class="tab" role="tab" data-view="editor">Editor</button>
+    <button class="tab" role="tab" data-view="show">Show</button>
+    <button class="tab" role="tab" data-view="presenter">Presenter</button>
+    <button class="tab" role="tab" data-view="ingest">Ingest</button>
+    <button class="tab" role="tab" data-view="analysis">Analysis</button>
+    <button class="tab" role="tab" data-view="plan">Plan</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+
+<!-- ================= OVERVIEW ================= -->
+<section class="view active" id="view-overview">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Interactive prototype · Sun 18 Oct 2026</div>
+      <div class="hero-title" style="margin-top:10px">An editor and a cinematic show<br>for Yehuda's <span class="num">80</span>th</div>
+      <p class="lead">Every screen below is live. The editor state feeds the show, the show feeds the presenter view, and the ingest screen simulates the real pipeline that will process the photo library you drop in later. Photos are generated placeholders until the real ones arrive.</p>
+      <div class="statrow">
+        <div class="stat"><div class="v tabular" id="st-slides">0</div><div class="l">slides in demo show</div></div>
+        <div class="stat"><div class="v tabular" id="st-dur">0:00</div><div class="l">running time</div></div>
+        <div class="stat"><div class="v">12</div><div class="l">slide types</div></div>
+        <div class="stat"><div class="v">5</div><div class="l">days to the event</div></div>
+      </div>
+    </div>
+    <div class="hero-stage" id="hero-stage"></div>
+  </div>
+  <div class="screens">
+    <button class="screen" data-goto="editor"><div class="thumb" id="th-editor"></div><div class="meta"><h3>Editor</h3><p>Library, storyboard, inspector, live preview. Hebrew RTL. Drag to reorder, click a photo to set the focal point.</p></div></button>
+    <button class="screen" data-goto="show"><div class="thumb" id="th-show"></div><div class="meta"><h3>Show</h3><p>Full-screen playback built from the editor's data. Keyboard or clicker. Music ducks under greeting videos.</p></div></button>
+    <button class="screen" data-goto="presenter"><div class="thumb" id="th-presenter"></div><div class="meta"><h3>Presenter</h3><p>Current and next slide, elapsed time, chapter map. Lives on the laptop screen when a second display is attached.</p></div></button>
+    <button class="screen" data-goto="ingest"><div class="thumb" id="th-ingest"></div><div class="meta"><h3>Ingest</h3><p>Drop folders into <code>media/</code>. Hashing, EXIF, HEIC fallback, ffmpeg transcode and loudness normalization.</p></div></button>
+  </div>
+</section>
+
+<!-- ================= EDITOR ================= -->
+<section class="view" id="view-editor">
+  <div class="eyebrow">Screen 1</div>
+  <h2 style="margin:6px 0 6px">Editor</h2>
+  <p class="muted" style="max-width:70ch;margin-bottom:18px">Build the show without touching JSON. Everything here is wired: select, edit, drag, duplicate, undo. The preview is the real slide renderer. Open the Show tab afterwards to play what you built.</p>
+  <div class="app" id="editor-app">
+    <div class="app-bar">
+      <span class="title">סבא יהודה 80 · עורך</span>
+      <span class="pill ok" id="save-pill"><span class="dot"></span><span id="save-txt">נשמר</span></span>
+      <span class="pill"><span>סה״כ</span><b class="tabular" id="total-dur">0:00</b></span>
+      <span class="spacer"></span>
+      <button class="btn sm ghost" id="undo-btn" title="Ctrl+Z">↶ בטל</button>
+      <button class="btn sm ghost" id="redo-btn" title="Ctrl+Y">↷ חזור</button>
+      <button class="btn sm" id="add-chapter">+ פרק</button>
+      <button class="btn sm primary" id="play-from" data-goto="show">▶ נגן מכאן</button>
+    </div>
+    <div class="editor">
+      <aside class="panel ed-lib">
+        <div class="panel-h">ספריית מדיה <span class="count" id="lib-count"></span></div>
+        <div class="panel-b">
+          <div class="filters" id="lib-filters">
+            <button class="chip" data-f="all" aria-pressed="true">הכל</button>
+            <button class="chip" data-f="photo" aria-pressed="false">תמונות</button>
+            <button class="chip" data-f="video" aria-pressed="false">סרטונים</button>
+            <button class="chip" data-f="unused" aria-pressed="false">לא בשימוש</button>
+          </div>
+          <div class="row2" style="margin-bottom:10px">
+            <select id="lib-decade" aria-label="עשור"><option value="">כל השנים</option><option value="1940">1940–49</option><option value="1950">1950–59</option><option value="1960">1960–69</option><option value="1970">1970–79</option><option value="1980">1980–89</option><option value="1990">1990–99</option><option value="2000">2000–09</option><option value="2010">2010–19</option><option value="2020">2020–26</option></select>
+            <input id="lib-search" placeholder="חיפוש…" aria-label="חיפוש">
+          </div>
+          <div class="libgrid" id="libgrid"></div>
+        </div>
+        <div class="libfoot">
+          <button class="btn sm" id="lib-add" disabled>+ הוסף לפרק</button>
+          <button class="btn sm" id="lib-collage" disabled>קולאז׳ מהנבחרים</button>
+          <span class="muted" style="font-size:11px;align-self:center" id="lib-selinfo"></span>
+        </div>
+      </aside>
+
+      <div class="panel ed-preview">
+        <div class="stage-wrap"><div class="stage" id="ed-stage" title="לחיצה על התמונה קובעת את נקודת המוקד"></div></div>
+        <div class="stage-foot">
+          <span id="pv-info">—</span>
+          <span class="spacer" style="flex:1"></span>
+          <span>תצוגה מקדימה · 16:9 · <span id="pv-size"></span></span>
+        </div>
+      </div>
+
+      <aside class="panel ed-insp">
+        <div class="panel-h">מאפיינים <span class="count" id="insp-type"></span></div>
+        <div class="panel-b" id="insp"></div>
+        <div class="panel-h" style="border-top:1px solid var(--line)">בדיקות <span class="count" id="checks-count"></span></div>
+        <div class="panel-b" style="flex:0 0 auto;max-height:150px"><div class="checks" id="checks"></div></div>
+      </aside>
+
+      <div class="panel ed-story">
+        <div class="story" id="story"></div>
+        <div class="story-foot">
+          <span>גרור שקופית לשינוי סדר · לחיצה כפולה = נגן מכאן · <kbd>Del</kbd> מחיקה · <kbd>Ctrl</kbd>+<kbd>D</kbd> שכפול</span>
+          <span class="spacer" style="flex:1"></span>
+          <span id="story-stats"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SHOW ================= -->
+<section class="view" id="view-show">
+  <div class="eyebrow">Screen 2</div>
+  <h2 style="margin:6px 0 6px">Show</h2>
+  <p class="muted" style="max-width:70ch;margin-bottom:18px">This plays the show exactly as it stands in the editor. Click Start (the click unlocks audio and fullscreen, as Chrome requires). Then use the keyboard or a presentation clicker.</p>
+  <div class="show-shell">
+    <div class="player" id="player" tabindex="0" aria-label="Show player">
+      <div class="layer" id="stage-a"></div>
+      <div class="layer" id="stage-b"></div>
+      <div class="startgate" id="startgate">
+        <div class="inner">
+          <div class="name">סבא יהודה</div>
+          <div class="big">80</div>
+          <button class="btn primary" id="start-btn">התחל ▶</button>
+          <div class="muted" style="font-size:12px;direction:rtl">מסך מלא · מוזיקה · שלט</div>
+        </div>
+      </div>
+      <div class="hud">
+        <span id="hud-idx" class="tabular">1 / 1</span>
+        <div class="bar"><i id="hud-bar"></i></div>
+        <span id="hud-ch">—</span>
+        <span id="hud-mode">auto</span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <h4 style="margin-bottom:10px">Controls</h4>
+        <div class="keys">
+          <span><kbd>Space</kbd> <kbd>→</kbd> <kbd>PgDn</kbd></span><span>next slide (clicker "next")</span>
+          <span><kbd>←</kbd> <kbd>PgUp</kbd></span><span>previous</span>
+          <span><kbd>P</kbd></span><span>pause / resume auto-advance</span>
+          <span><kbd>B</kbd></span><span>black screen</span>
+          <span><kbd>M</kbd></span><span>mute music</span>
+          <span><kbd>F</kbd></span><span>fullscreen</span>
+          <span><kbd>Esc</kbd></span><span>leave fullscreen</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:10px">Audio bus</h4>
+        <div class="vu"><span style="width:52px">music</span><div class="m"><i id="vu-music"></i></div><span class="tabular" id="vu-music-v">70%</span></div>
+        <div class="vu" style="margin-top:8px"><span style="width:52px">video</span><div class="m"><i id="vu-video" style="width:0"></i></div><span class="tabular" id="vu-video-v">0%</span></div>
+        <p class="muted" style="font-size:12px;margin-top:10px">Music is a synthesized placeholder pad. It ducks to 10% when a greeting video starts and returns 1.2 s after it ends.</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:6px">Now playing</h4>
+        <div id="now-playing" class="he" style="font-size:16px">—</div>
+        <div class="muted" style="font-size:12px;margin-top:6px" id="now-next">—</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn sm" id="btn-prev">← prev</button>
+          <button class="btn sm" id="btn-next">next →</button>
+          <button class="btn sm" id="btn-pause">pause</button>
+          <button class="btn sm" id="btn-black">black</button>
+          <button class="btn sm" id="btn-mute">mute</button>
+          <button class="btn sm" id="btn-fs">fullscreen</button>
+          <button class="btn sm" id="btn-restart">restart</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PRESENTER ================= -->
+<section class="view" id="view-presenter">
+  <div class="eyebrow">Screen 3</div>
+  <h2 style="margin:6px 0 6px">Presenter</h2>
+  <p class="muted" style="max-width:70ch;margin-bottom:18px">Since the show runs from this laptop, this view matters only if a second display (TV or projector) is attached. It mirrors the player's state in real time. Start the show in the Show tab and come back here.</p>
+  <div class="presenter">
+    <div class="pr-cur" id="pr-cur"><span class="pr-lab">עכשיו</span></div>
+    <div class="pr-next" id="pr-next"><span class="pr-lab">הבא</span></div>
+    <div class="pr-info" style="grid-column:1/-1">
+      <div class="k"><div class="v" id="pr-clock">--:--</div><div class="l">שעה</div></div>
+      <div class="k"><div class="v" id="pr-elapsed">0:00</div><div class="l">זמן שעבר</div></div>
+      <div class="k"><div class="v" id="pr-remaining">0:00</div><div class="l">נותר (משוער)</div></div>
+    </div>
+    <div class="pr-notes" id="pr-notes">—</div>
+    <div class="pr-list" id="pr-list"></div>
+  </div>
+</section>
+
+<!-- ================= INGEST ================= -->
+<section class="view" id="view-ingest">
+  <div class="eyebrow">Screen 4</div>
+  <h2 style="margin:6px 0 6px">Ingest</h2>
+  <p class="muted" style="max-width:70ch;margin-bottom:18px">What happens when you drop the real library into <code>media/</code>. This is a simulation of the pipeline with realistic timings and the warnings you should expect (HEIC fallback, a corrupt scan, a loud WhatsApp video).</p>
+  <div class="ingest">
+    <div class="card">
+      <div class="dropzone" id="dropzone">גרור תיקיות לכאן או הנח קבצים ב־<b>media/photos</b>, <b>media/videos/greetings</b>, <b>media/music</b><br><span style="font-size:12px">בפרוטוטיפ: לחיצה על "סרוק" מריצה סימולציה</span></div>
+      <div style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap">
+        <button class="btn primary" id="ingest-run">סרוק media/ ▶</button>
+        <button class="btn" id="ingest-reset">איפוס</button>
+        <span class="pill" id="ingest-pill"><span class="dot"></span>ממתין</span>
+      </div>
+      <div class="prog"><i id="ingest-prog"></i></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px"><span id="ingest-count">0 / 2,347</span><span id="ingest-eta">—</span></div>
+      <div class="stepper" style="margin-top:14px" id="steps">
+        <div class="step" data-s="scan"><span class="n">1</span><span>סריקת תיקיות ו־hash לכל קובץ</span><span class="s">—</span></div>
+        <div class="step" data-s="exif"><span class="n">2</span><span>EXIF, סיבוב, תאריך (נפילה לשם תיקייה / mtime)</span><span class="s">—</span></div>
+        <div class="step" data-s="img"><span class="n">3</span><span>נגזרות תמונה: 2560 · 400 · blur (WebP)</span><span class="s">—</span></div>
+        <div class="step" data-s="vid"><span class="n">4</span><span>ffmpeg: H.264 1080p · AAC · loudnorm −16 LUFS · poster</span><span class="s">—</span></div>
+        <div class="step" data-s="music"><span class="n">5</span><span>מוזיקה: משך + peaks לציר הזמן</span><span class="s">—</span></div>
+        <div class="step" data-s="index"><span class="n">6</span><span>כתיבת index.json ועדכון הספרייה בעורך</span><span class="s">—</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h4 style="margin-bottom:8px;direction:rtl">יומן</h4>
+      <div class="log" id="ingest-log"><span class="dim">ready. drop files or press scan.</span></div>
+      <div class="grid2" style="margin-top:12px;direction:rtl">
+        <div class="note"><h4>תמונות</h4><div class="stat"><div class="v tabular" id="ing-photos">0</div><div class="l">processed</div></div></div>
+        <div class="note"><h4>סרטוני ברכה</h4><div class="stat"><div class="v tabular" id="ing-videos">0</div><div class="l">transcoded</div></div></div>
+        <div class="note"><h4>אזהרות</h4><div class="stat"><div class="v tabular" id="ing-warn" style="color:var(--warn)">0</div><div class="l">need a look</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ================= ANALYSIS ================= -->
+<section class="view" id="view-analysis">
+  <div class="eyebrow">Deep inspection</div>
+  <h2 style="margin:6px 0 10px">Analysis</h2>
+  <div class="reading">
+    <p>The product is two programs sharing one data file. The editor writes <code>show.json</code>; the show reads it. Everything else (ingest, presenter, backups) exists to make those two reliable on one specific laptop, on one specific evening, with content that does not exist yet.</p>
+  </div>
+
+  <h3>System shape</h3>
+  <div class="diagram"><svg viewBox="0 0 900 330" role="img" aria-label="Architecture: media folder feeds ingest, which writes a cache and index; the Node server serves the cache and show.json to the editor and the show in Chrome; the show drives the TV and the presenter view">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8f8b7d"/></marker></defs>
+    <g font-family="Heebo,Arial,sans-serif" font-size="13" fill="#ece6d8">
+      <rect x="20" y="30" width="170" height="78" rx="8" fill="#1b1e27" stroke="#3a3f4f"/><text x="105" y="58" text-anchor="middle" font-weight="600">media/</text><text x="105" y="78" text-anchor="middle" fill="#8f8b7d" font-size="12">photos · videos · music</text><text x="105" y="95" text-anchor="middle" fill="#8f8b7d" font-size="11">raw, git-ignored</text>
+      <rect x="250" y="30" width="170" height="78" rx="8" fill="#1b1e27" stroke="#d4a84b"/><text x="335" y="58" text-anchor="middle" font-weight="600">Ingest worker pool</text><text x="335" y="78" text-anchor="middle" fill="#8f8b7d" font-size="12">sharp · exifr · ffmpeg</text><text x="335" y="95" text-anchor="middle" fill="#8f8b7d" font-size="11">hash → derive, incremental</text>
+      <rect x="480" y="30" width="170" height="78" rx="8" fill="#1b1e27" stroke="#3a3f4f"/><text x="565" y="58" text-anchor="middle" font-weight="600">.cache/</text><text x="565" y="78" text-anchor="middle" fill="#8f8b7d" font-size="12">webp · mp4 · posters</text><text x="565" y="95" text-anchor="middle" fill="#8f8b7d" font-size="11">index.json (asset catalog)</text>
+      <rect x="710" y="30" width="170" height="78" rx="8" fill="#1b1e27" stroke="#3a3f4f"/><text x="795" y="58" text-anchor="middle" font-weight="600">data/show.json</text><text x="795" y="78" text-anchor="middle" fill="#8f8b7d" font-size="12">chapters · slides · music</text><text x="795" y="95" text-anchor="middle" fill="#8f8b7d" font-size="11">zod-validated, backed up</text>
+      <rect x="250" y="150" width="400" height="60" rx="8" fill="#14161d" stroke="#3a3f4f"/><text x="450" y="175" text-anchor="middle" font-weight="600">Node server (Fastify) · localhost:4000</text><text x="450" y="195" text-anchor="middle" fill="#8f8b7d" font-size="12">/api/assets · /api/show · /media-cache (range requests) · SSE progress</text>
+      <rect x="60" y="250" width="230" height="60" rx="8" fill="#14161d" stroke="#3a3f4f"/><text x="175" y="275" text-anchor="middle" font-weight="600">/edit — Editor</text><text x="175" y="295" text-anchor="middle" fill="#8f8b7d" font-size="12">React · zustand · dnd-kit</text>
+      <rect x="335" y="250" width="230" height="60" rx="8" fill="#14161d" stroke="#d4a84b"/><text x="450" y="275" text-anchor="middle" font-weight="600">/show — Playback engine</text><text x="450" y="295" text-anchor="middle" fill="#8f8b7d" font-size="12">GSAP timelines · Web Audio bus</text>
+      <rect x="610" y="250" width="230" height="60" rx="8" fill="#14161d" stroke="#3a3f4f"/><text x="725" y="275" text-anchor="middle" font-weight="600">/presenter</text><text x="725" y="295" text-anchor="middle" fill="#8f8b7d" font-size="12">BroadcastChannel from /show</text>
+    </g>
+    <g stroke="#8f8b7d" stroke-width="1.5" fill="none" marker-end="url(#ar)">
+      <path d="M190 69H248"/><path d="M420 69H478"/><path d="M565 108V150"/><path d="M795 108V150H652"/>
+      <path d="M335 108V150"/><path d="M300 210L200 248"/><path d="M450 210V248"/><path d="M565 250L600 250"/>
+    </g>
+    <text x="300" y="235" font-family="Heebo,Arial" font-size="11" fill="#8f8b7d">reads + writes show.json</text>
+    <text x="458" y="235" font-family="Heebo,Arial" font-size="11" fill="#8f8b7d">reads only</text>
+  </svg></div>
+
+  <div class="reading">
+    <h3>Why this shape</h3>
+    <p><b>One laptop does everything.</b> You confirmed the projector is this laptop. That removes the network entirely: the server binds to localhost, the browser is Chrome on the same machine, and the TV is just a second display over HDMI (or the laptop screen itself). There is no deployment step; <code>npm run show</code> is the whole runbook.</p>
+    <p><b>The show never touches an original file.</b> Every photo is re-encoded to WebP at 2560 px, every video to H.264 1080p with normalized loudness. This is what makes playback predictable: no HEIC decoding at show time, no WhatsApp codec surprises, no 40 MB camera JPEGs decoding on a slide change.</p>
+    <p><b>Derived data is disposable, edited data is sacred.</b> The cache can be deleted and rebuilt. <code>show.json</code> is written atomically with a timestamped backup on every save and referenced by content hash, so renaming or moving a photo in <code>media/</code> never breaks a slide.</p>
+    <p><b>The editor and the show share one renderer.</b> The preview pane in the editor is the same slide component the show uses. What you see while editing is what the family sees, including typography and safe margins.</p>
+  </div>
+
+  <h3>Decisions and the alternatives they beat</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Area</th><th>Decision</th><th>Rejected</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Runtime</td><td><b>Local web app</b> (Vite + React 19) served by Node, opened in Chrome kiosk mode</td><td>Electron, Tauri</td><td>Nothing to package or sign; file access is a fixed folder; a day saved.</td></tr>
+      <tr><td>Animation</td><td><b>GSAP 3.15</b> (free incl. SplitText, Flip since Apr 2025)</td><td>CSS-only, Motion for slides</td><td>Deterministic timelines, scrubbable, pausable, precise sequencing of Ken Burns + captions + ducking.</td></tr>
+      <tr><td>Final MP4</td><td><b>Screen-record the rehearsal</b> (OBS) as a backup file</td><td>Remotion render</td><td>Frame-by-frame render of 25 min with embedded videos is slow and fragile; editor would inherit Remotion's frame model.</td></tr>
+      <tr><td>Images</td><td><b>sharp</b> + exifr; HEIC via heic-convert, then ffmpeg</td><td>Browser-side decoding</td><td>sharp's prebuilt binaries cannot decode HEVC-HEIC; fallback chain tested on first iPhone photo.</td></tr>
+      <tr><td>Video/audio</td><td><b>ffmpeg-static</b>; loudnorm −16 LUFS; Web Audio bus with gain ducking</td><td>Play originals, per-clip volume by hand</td><td>WhatsApp clips vary by 15+ dB; normalization at ingest beats manual volume on the night.</td></tr>
+      <tr><td>State</td><td><b>zustand</b> with temporal (undo) + debounced save to server</td><td>Redux, server-only state</td><td>Small, fast to wire, undo for free.</td></tr>
+      <tr><td>Drag and drop</td><td><b>dnd-kit</b> sortable</td><td>HTML5 DnD</td><td>Keyboard-accessible, touch-safe, smooth between chapters.</td></tr>
+      <tr><td>Fonts</td><td><b>Frank Ruhl Libre</b> (display), <b>Suez One</b> (numerals), <b>Heebo</b> (UI), self-hosted via fontsource</td><td>Google Fonts at runtime</td><td>Offline at the venue; full Hebrew coverage; serif reads as "80 years", not "startup".</td></tr>
+      <tr><td>Persistence</td><td>JSON file + 200 rolling backups</td><td>SQLite, cloud DB</td><td>One author, one machine, five days. A file you can read and email.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="reading">
+    <h3>Data model</h3>
+    <p>One <code>Show</code> object: metadata, settings, music tracks, and chapters that contain slides. Slides reference assets by content-hash id. Twelve slide types, each with a small set of props; the editor's inspector is generated from the type's schema. Chapters carry defaults (duration, transition, Ken Burns preset) and a music binding (track, start offset, fade). The server validates with zod on every write and refuses a save that would corrupt the file.</p>
+    <h3>Playback engine</h3>
+    <p>A scheduler owns a queue of slides. For each slide it builds one GSAP timeline (enter, hold, exit), preloads the next three slides' images with <code>createImageBitmap</code>, and the next video with <code>preload=auto</code>. Transitions run between two stacked layers, so the outgoing slide keeps animating while the incoming one enters. Audio is one Web Audio graph; ducking is a gain tween triggered by the scheduler when a video slide enters and released 1.2 s after it ends. Keyboard events map to clicker keys (PageUp/PageDown) so any presenter remote works.</p>
+    <h3>Ingest pipeline</h3>
+    <p>Content-hash → derive → index. Idempotent and incremental: re-running on 2,000 processed photos costs seconds. Worker pool sized to cores minus one. Progress streams to the editor over SSE so the library fills in while you keep working. A watcher picks up new drops in development.</p>
+  </div>
+
+  <h3>Risks, scored</h3>
+  <div class="reading">
+    <div class="risk"><span class="sev h">HIGH</span><div><b>HEIC photos fail to decode.</b> Fallback chain (sharp → heic-convert → ffmpeg). Tested the moment the first iPhone photo lands. Last resort: export JPEG from Photos on the phone.</div></div>
+    <div class="risk"><span class="sev h">HIGH</span><div><b>Hardware surprise on the night</b> (HDMI audio, scaling, sleep). Mitigated by rehearsal on the exact laptop on Thursday, Focus Assist, power plan, and the backup MP4 in VLC.</div></div>
+    <div class="risk"><span class="sev m">MED</span><div><b>WhatsApp videos with odd codecs or rotation flags.</b> Every clip is re-encoded; the show never plays an original.</div></div>
+    <div class="risk"><span class="sev m">MED</span><div><b>Thousands of photos make the editor sluggish.</b> Virtualized grid, 400 px thumbs, server-side filters, blur placeholders.</div></div>
+    <div class="risk"><span class="sev m">MED</span><div><b>Hebrew letter animation breaks (SplitText RTL).</b> Day-1 spike; fallback to word-level reveal, which this prototype already uses.</div></div>
+    <div class="risk"><span class="sev l">LOW</span><div><b>Music ends before a chapter does.</b> Editor warning (see the storyboard) plus automatic seamless loop with a 2 s crossfade.</div></div>
+    <div class="risk"><span class="sev l">LOW</span><div><b>Scope creep.</b> Engine and editor first; visual extras are a ranked list on Wednesday; anything unfinished by Wednesday evening is cut.</div></div>
+  </div>
+
+  <h3>What the prototype proves and what it does not</h3>
+  <div class="grid2">
+    <div class="note"><h4>Proven here</h4><ul><li>Editor information architecture and RTL layout</li><li>Slide types, typography, motion curves, transitions</li><li>Editor → show → presenter data flow</li><li>Ducking behavior and clicker key mapping</li><li>Focal point, duration, transition, advance mode editing</li></ul></div>
+    <div class="note"><h4>Only in the real build</h4><ul><li>Real photos (placeholders are generated here)</li><li>Real video playback and ffmpeg normalization</li><li>File persistence with backups (here: browser storage)</li><li>Virtualized library for thousands of items</li><li>Second-display presenter over BroadcastChannel</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= PLAN ================= -->
+<section class="view" id="view-plan">
+  <div class="eyebrow">Plan to the end</div>
+  <h2 style="margin:6px 0 10px">Five days</h2>
+  <div class="reading">
+    <p>Tick items as they land. Each day has an acceptance test; a day is done when the test passes, not when the list is empty. Checkboxes are remembered in this browser only.</p>
+  </div>
+
+  <div class="plan-day"><div class="d">Sun 18<small>Day 0 · today</small></div><div>
+    <label><input type="checkbox" data-k="d0a"> Scaffold: Vite + React 19 + TS + Tailwind 4, Fastify server, tsx, concurrently, scripts <code>dev</code> / <code>ingest</code> / <code>show</code></label>
+    <label><input type="checkbox" data-k="d0b"> Ingest for images and music with sample media (sharp, exifr, HEIC fallback, hash cache, index.json)</label>
+    <label><input type="checkbox" data-k="d0c"> Minimal <code>/show</code>: photo slides with Ken Burns and one music track, Start gate, fullscreen</label>
+    <label><input type="checkbox" data-k="d0d"> Fonts self-hosted; RTL base styles; safe margins</label>
+    <div class="acc">Acceptance: <code>npm run dev</code> shows real photos from <code>media/photos</code> with music in Chrome.</div>
+  </div></div>
+
+  <div class="plan-day"><div class="d">Mon 19<small>Day 1 · engine</small></div><div>
+    <label><input type="checkbox" data-k="d1a"> All 12 slide types at "works" level; transitions (crossfade, dip, push RTL, zoom)</label>
+    <label><input type="checkbox" data-k="d1b"> Video ingest: ffmpeg transcode, loudnorm, poster, portrait handling; <code>video</code> and <code>video-wall</code> slides</label>
+    <label><input type="checkbox" data-k="d1c"> Audio bus: music gain, ducking, track crossfade, loop-with-crossfade</label>
+    <label><input type="checkbox" data-k="d1d"> Scheduler: preloader, auto/manual advance, keyboard + clicker, <code>/show?from=</code>, black screen</label>
+    <label><input type="checkbox" data-k="d1e"> SplitText RTL spike; fallback to word reveal if it fails</label>
+    <div class="acc">Acceptance: a hand-written <code>show.json</code> plays end to end with photos, one greeting video and music, controlled by keyboard.</div>
+  </div></div>
+
+  <div class="plan-day"><div class="d">Tue 20<small>Day 2 · editor</small></div><div>
+    <label><input type="checkbox" data-k="d2a"> Library: virtualized grid, filters (type, decade, unused, search), multi-select, add / collage</label>
+    <label><input type="checkbox" data-k="d2b"> Storyboard: chapters, dnd-kit sortable across chapters, duplicate, delete, totals</label>
+    <label><input type="checkbox" data-k="d2c"> Inspector per slide type; focal point picker; video trim slider; chapter music binding</label>
+    <label><input type="checkbox" data-k="d2d"> Autosave with atomic write + 200 rolling backups; undo/redo; sanity checks panel</label>
+    <label><input type="checkbox" data-k="d2e"> Preview pane uses the show renderer; "play from here"</label>
+    <div class="acc">Acceptance: you build a three-chapter show from the library without opening a JSON file, close the browser, reopen, and it is all there.</div>
+  </div></div>
+
+  <div class="plan-day"><div class="d">Wed 21<small>Day 3 · polish + content</small></div><div>
+    <label><input type="checkbox" data-k="d3a"> Visual pass on every slide type: type scale, gold rules, grain on archival photos, lower-thirds, motion curves</label>
+    <label><input type="checkbox" data-k="d3b"> Intro and finale (mosaic → 80, confetti); timeline slide with real milestones</label>
+    <label><input type="checkbox" data-k="d3c"> Presenter view on the laptop screen when a second display is attached</label>
+    <label><input type="checkbox" data-k="d3d"> Ingest the real library; fix whatever the real files reveal (HEIC, dates, rotations)</label>
+    <label><input type="checkbox" data-k="d3e"> Ohad authors the show in parallel; I fix what blocks you within the hour</label>
+    <div class="acc">Acceptance: the show looks like this prototype or better, with the real photos, through every chapter.</div>
+  </div></div>
+
+  <div class="plan-day"><div class="d">Thu 22<small>Day 4 · rehearsal</small></div><div>
+    <label><input type="checkbox" data-k="d4a"> Full run on this laptop and the actual TV/projector cable; check HDMI audio, scaling, overscan</label>
+    <label><input type="checkbox" data-k="d4b"> Timing adjustments; cut or merge slides; verify total length</label>
+    <label><input type="checkbox" data-k="d4c"> Record <code>show-backup.mp4</code> with OBS; test it in VLC; copy to a USB stick</label>
+    <label><input type="checkbox" data-k="d4d"> Runbook: power plan, Focus Assist, Windows Update paused, kiosk launch command, control cheat-sheet printed</label>
+    <div class="acc">Acceptance: two clean full runs, one of them from a cold boot of the laptop.</div>
+  </div></div>
+
+  <div class="plan-day"><div class="d">Fri 23<small>Day 5 · buffer</small></div><div>
+    <label><input type="checkbox" data-k="d5a"> No new features. Only fixes found in rehearsal.</label>
+    <label><input type="checkbox" data-k="d5b"> Laptop charged, USB stick in the bag, HDMI cable and adapter packed</label>
+    <div class="acc">Acceptance: you can start the show in under a minute from a closed laptop.</div>
+  </div></div>
+
+  <h3>What I need from you</h3>
+  <div class="grid2">
+    <div class="note"><h4>Media (any time from today)</h4><ul><li>Photos into <code>media/photos/</code>; sub-folders by decade or event help ordering</li><li>Greeting videos into <code>media/videos/greetings/</code>, file name = greeter's name in Hebrew</li><li>Music into <code>media/music/</code></li></ul></div>
+    <div class="note"><h4>Story skeleton</h4><ul><li>Chapter list (childhood, army, wedding, children, work, grandchildren, today)</li><li>Key years: birth, wedding, children's births</li><li>3 to 5 short family quotes</li></ul></div>
+    <div class="note"><h4>Hardware</h4><ul><li>TV or projector resolution and how it connects (HDMI, adapter)</li><li>Audio path: TV speakers or a sound bar</li><li>Whether there is a clicker</li></ul></div>
+    <div class="note"><h4>Decisions I will assume unless you say otherwise</h4><ul><li>20 to 30 minutes total; about 6 s per photo; greetings in full</li><li>Hebrew only inside the show</li><li>Finale ends on a photo of Yehuda today</li></ul></div>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+<script>
+/* ============ utilities ============ */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); };
+const uid = () => Math.random().toString(36).slice(2,9);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+let toastT; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('on'), 1800); }
+function store(k, v){ try { if (v === undefined) { const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } localStorage.setItem(k, JSON.stringify(v)); } catch(e) { return null; } }
+
+/* ============ placeholder "photos" (procedural film stills) ============ */
+function rng(seed){ let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+const NOISE = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); const d = x.createImageData(128,128); for (let i=0;i<d.data.length;i+=4){ const v = 100 + Math.random()*155; d.data[i]=d.data[i+1]=d.data[i+2]=v; d.data[i+3]=255; } x.putImageData(d,0,0); return c; })();
+const NOISE_URL = NOISE.toDataURL();
+function makePhoto(seed, year, w=960, h=640){
+  const r = rng(seed*7919 + year);
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+  const era = year < 1962 ? 'bw' : year < 1982 ? 'faded' : year < 2002 ? 'film' : 'digital';
+  const pal = {
+    bw:      { sky:['#d9d4c6','#8a867b'], ground:['#6d685d','#2b2924'], fig:'#1c1a17', sun:'#f4f1e8' },
+    faded:   { sky:['#e7c9a0','#b08a68'], ground:['#9c7a55','#4a3a2a'], fig:'#2a1e16', sun:'#fff0c8' },
+    film:    { sky:['#9fc3e0','#4f7faa'], ground:['#7e9a52','#2f4a24'], fig:'#1b2430', sun:'#fff6d8' },
+    digital: { sky:['#bcd9ef','#6aa5d8'], ground:['#89b06a','#3a6a35'], fig:'#202a38', sun:'#ffffff' },
+  }[era];
+  let g = x.createLinearGradient(0,0,0,h*0.62); g.addColorStop(0,pal.sky[0]); g.addColorStop(1,pal.sky[1]); x.fillStyle = g; x.fillRect(0,0,w,h);
+  // sun / light
+  x.globalAlpha = .5; x.fillStyle = pal.sun; x.beginPath(); x.arc(w*(0.2+r()*0.6), h*(0.15+r()*0.25), w*(0.04+r()*0.06), 0, 7); x.fill(); x.globalAlpha = 1;
+  // hills
+  for (let k=0;k<3;k++){ const base = h*(0.5+k*0.08); x.fillStyle = k===2 ? pal.ground[1] : (k===1? pal.ground[0] : mix(pal.sky[1], pal.ground[0], .5)); x.beginPath(); x.moveTo(0,h); x.lineTo(0,base);
+    for (let i=0;i<=w;i+=20){ x.lineTo(i, base - Math.sin(i/w*Math.PI*(1.5+k)+r()*0.2+k)*h*0.05 - Math.sin(i/w*9+k)*h*0.015); } x.lineTo(w,h); x.closePath(); x.fill(); }
+  // ground
+  g = x.createLinearGradient(0,h*0.62,0,h); g.addColorStop(0,pal.ground[0]); g.addColorStop(1,pal.ground[1]); x.fillStyle = g; x.fillRect(0,h*0.72,w,h*0.28);
+  // figures
+  const n = 1 + Math.floor(r()*4); const cx0 = w*(0.3+r()*0.4);
+  for (let i=0;i<n;i++){ const fh = h*(0.28+r()*0.12); const cx = cx0 + (i-(n-1)/2)*w*0.1 + (r()-.5)*w*0.03; const by = h*0.86 + r()*h*0.04;
+    x.fillStyle = pal.fig; x.globalAlpha = .92;
+    rr(x, cx-fh*0.16, by-fh*0.72, fh*0.32, fh*0.72, fh*0.1); x.beginPath(); x.arc(cx, by-fh*0.84, fh*0.12, 0, 7); x.fill(); x.globalAlpha = 1; }
+  // vignette
+  g = x.createRadialGradient(w/2,h/2,h*0.3,w/2,h/2,h*0.85); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,.55)'); x.fillStyle = g; x.fillRect(0,0,w,h);
+  // tone
+  if (era==='bw'){ x.globalCompositeOperation='saturation'; x.fillStyle='#808080'; x.fillRect(0,0,w,h); x.globalCompositeOperation='multiply'; x.fillStyle='#d9c6a3'; x.fillRect(0,0,w,h); x.globalCompositeOperation='source-over'; }
+  if (era==='faded'){ x.globalCompositeOperation='screen'; x.fillStyle='rgba(120,80,40,.25)'; x.fillRect(0,0,w,h); x.globalCompositeOperation='source-over'; }
+  // grain
+  x.globalAlpha = era==='digital'? .06 : .16; x.globalCompositeOperation='overlay'; x.fillStyle = x.createPattern(NOISE,'repeat'); x.fillRect(0,0,w,h); x.globalAlpha=1; x.globalCompositeOperation='source-over';
+  // border for old prints
+  if (era!=='digital'){ x.strokeStyle='rgba(255,250,235,.85)'; x.lineWidth = w*0.012; x.strokeRect(x.lineWidth/2,x.lineWidth/2,w-x.lineWidth,h-x.lineWidth); }
+  return c.toDataURL('image/jpeg', .82);
+}
+function rr(x,X,Y,W,H,R){ x.beginPath(); x.moveTo(X+R,Y); x.arcTo(X+W,Y,X+W,Y+H,R); x.arcTo(X+W,Y+H,X,Y+H,R); x.arcTo(X,Y+H,X,Y,R); x.arcTo(X,Y,X+W,Y,R); x.closePath(); x.fill(); }
+function mix(a,b,t){ const pa = hex(a), pb = hex(b); return `rgb(${pa.map((v,i)=>Math.round(v+(pb[i]-v)*t)).join(',')})`; }
+function hex(h){ return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16)); }
+
+/* ============ demo library ============ */
+const PHOTO_YEARS = [1947,1949,1953,1956,1958,1961,1964,1966,1968,1971,1974,1977,1980,1983,1986,1989,1992,1995,1998,2003,2008,2013,2018,2022,2024,2026];
+const GREETERS = ['נועה','איתי','מאיה','יונתן','תמר','עידו'];
+const ASSETS = [];
+PHOTO_YEARS.forEach((y,i)=>{ ASSETS.push({ id:'p'+(i+1), type:'photo', year:y, folder: y<1960?'ילדות':y<1972?'צבא ונעורים':y<1992?'המשפחה':y<2010?'העבודה':'הנכדים', name:(y<1990?'scan_':'IMG_')+String(1000+i*37)+'.jpg', src: makePhoto(i+1, y), w:960, h:640 }); });
+GREETERS.forEach((n,i)=>{ ASSETS.push({ id:'v'+(i+1), type:'video', year:2026, folder:'ברכות', name:n+'.mp4', src: makePhoto(100+i, 2026, 540, 960), portrait:true, duration: 7+i, relation: i<3?'נכד/ה':'אחיין/ית' }); });
+const MUSIC = [ {id:'m1', title:'ערב של שושנים (כלי)', sec:214}, {id:'m2', title:'הכניסיני תחת כנפך (פסנתר)', sec:188}, {id:'m3', title:'שיר לשלום (כלי)', sec:242} ];
+const A = Object.fromEntries(ASSETS.map(a=>[a.id,a]));
+
+function demoShow(){
+  const P = i => 'p'+i;
+  return [
+    { id:uid(), title:'פתיחה', musicId:'m1', slides:[
+      { id:uid(), type:'intro', title:'יהודה', subtitle:'חוגגים 80 · אוקטובר 2026', seconds:8 },
+      { id:uid(), type:'timeline', title:'שמונים שנה בדקה', milestones:[{year:1946,label:'נולד',assetId:P(1)},{year:1966,label:'חתונה',assetId:P(8)},{year:1971,label:'ילד ראשון',assetId:P(10)},{year:1995,label:'נכדה ראשונה',assetId:P(18)},{year:2026,label:'80',assetId:P(26)}], seconds:12 },
+    ]},
+    { id:uid(), title:'ילדות ונעורים', subtitle:'1946–1964', musicId:'m1', slides:[
+      { id:uid(), type:'chapter', heroAssetId:P(2), label:'שנות הארבעים והחמישים', blurb:'ילד קטן בארץ צעירה', seconds:6 },
+      { id:uid(), type:'photo', assetId:P(1), caption:'השנה הראשונה', year:1947, kenBurns:'in', focal:[50,45], seconds:6, advance:'auto', transition:'fade' },
+      { id:uid(), type:'photo', assetId:P(3), caption:'עם אמא, בחצר', year:1953, kenBurns:'left', focal:[55,50], seconds:6, advance:'auto', transition:'fade' },
+      { id:uid(), type:'photo', assetId:P(5), caption:'כיתה ד׳', year:1958, kenBurns:'out', focal:[50,50], seconds:6, advance:'auto', transition:'push' },
+      { id:uid(), type:'photo-pair', assetIds:[P(6),P(26)], caption:'אז · והיום', seconds:7 },
+    ]},
+    { id:uid(), title:'המשפחה', subtitle:'1965–1990', musicId:'m2', slides:[
+      { id:uid(), type:'chapter', heroAssetId:P(9), label:'המשפחה גדלה', blurb:'חתונה, בית, ארבעה ילדים', seconds:6 },
+      { id:uid(), type:'photo', assetId:P(8), caption:'יום החתונה', year:1966, kenBurns:'in', focal:[50,40], seconds:6, advance:'auto', transition:'fade' },
+      { id:uid(), type:'photo', assetId:P(11), caption:'הדירה הראשונה', year:1974, kenBurns:'right', focal:[50,50], seconds:6, advance:'auto', transition:'fade' },
+      { id:uid(), type:'collage', assetIds:[P(12),P(13),P(14),P(15),P(16)], caption:'שנות השמונים', seconds:9 },
+      { id:uid(), type:'quote', text:'אבא לימד אותנו שאין דבר כזה ״אי אפשר״, יש רק ״עוד לא ניסינו מספיק״.', by:'הילדים', seconds:9 },
+    ]},
+    { id:uid(), title:'הנכדים', subtitle:'1991–2026', musicId:'m3', slides:[
+      { id:uid(), type:'chapter', heroAssetId:P(21), label:'סבא', blurb:'תשעה נכדים ושתי נינות', seconds:6 },
+      { id:uid(), type:'photo', assetId:P(18), caption:'הנכדה הראשונה', year:1995, kenBurns:'in', focal:[48,42], seconds:6, advance:'auto', transition:'fade' },
+      { id:uid(), type:'names', title:'המשפחה', people:[{name:'נועה',assetId:P(19)},{name:'איתי',assetId:P(20)},{name:'מאיה',assetId:P(22)},{name:'יונתן',assetId:P(23)},{name:'תמר',assetId:P(24)},{name:'עידו',assetId:P(25)}], seconds:8 },
+      { id:uid(), type:'collage', assetIds:[P(22),P(23),P(24),P(25),P(26)], caption:'שבת בבוקר אצל סבא', seconds:9 },
+    ]},
+    { id:uid(), title:'ברכות', musicId:'m3', slides:[
+      { id:uid(), type:'video', assetId:'v1', name:'נועה', relation:'נכדה', hold:false },
+      { id:uid(), type:'video', assetId:'v2', name:'איתי', relation:'נכד', hold:false },
+      { id:uid(), type:'video', assetId:'v4', name:'יונתן', relation:'אחיין', hold:false },
+    ]},
+    { id:uid(), title:'סיום', musicId:'m1', slides:[
+      { id:uid(), type:'finale', text:'עד 120, אבא', seconds:12 },
+      { id:uid(), type:'black', caption:'(מחיאות כפיים)', advance:'manual' },
+    ]},
+  ];
+}
+
+/* ============ state ============ */
+const S = { chapters: null, sel: { ch:null, sl:null }, libSel: new Set(), filter:'all', decade:'', q:'', history:[], future:[] };
+S.chapters = store('sy80-show') || demoShow();
+function allSlides(){ return S.chapters.flatMap(c => c.slides.map(s => ({ s, c }))); }
+function slideSeconds(s){ if (s.type === 'video') { const a = A[s.assetId]; const d = a ? a.duration : 8; return Math.max(1, (s.trimOut ?? d) - (s.trimIn ?? 0)); } if (s.type === 'black') return 0; return s.seconds || 6; }
+function chapterSeconds(c){ return c.slides.reduce((t, s) => t + slideSeconds(s), 0); }
+function totalSeconds(){ return S.chapters.reduce((t, c) => t + chapterSeconds(c), 0); }
+function usage(){ const u = {}; allSlides().forEach(({s}) => { ['assetId','heroAssetId'].forEach(k => { if (s[k]) u[s[k]] = (u[s[k]]||0)+1; }); (s.assetIds||[]).forEach(id => u[id]=(u[id]||0)+1); (s.milestones||[]).forEach(m => { if (m.assetId) u[m.assetId]=(u[m.assetId]||0)+1; }); (s.people||[]).forEach(p => { if (p.assetId) u[p.assetId]=(u[p.assetId]||0)+1; }); }); return u; }
+function findSlide(id){ for (const c of S.chapters) { const i = c.slides.findIndex(s => s.id === id); if (i >= 0) return { c, i, s: c.slides[i] }; } return null; }
+let saveT; function commit(label){ S.history.push(JSON.stringify(S.chapters)); if (S.history.length > 60) S.history.shift(); S.future = []; persist(label); }
+function persist(label){ store('sy80-show', S.chapters); const p = $('#save-pill'), t = $('#save-txt'); if (p) { p.className='pill warn'; t.textContent='שומר…'; clearTimeout(saveT); saveT = setTimeout(()=>{ p.className='pill ok'; t.textContent='נשמר · '+new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }, 500); } if (label) toast(label); window.dispatchEvent(new Event('show-changed')); }
+function undo(){ if (!S.history.length) return toast('אין מה לבטל'); S.future.push(JSON.stringify(S.chapters)); S.chapters = JSON.parse(S.history.pop()); persist('בוטל'); renderEditor(); }
+function redo(){ if (!S.future.length) return; S.history.push(JSON.stringify(S.chapters)); S.chapters = JSON.parse(S.future.pop()); persist('הוחזר'); renderEditor(); }
+
+/* ============ shared slide renderer (editor preview + show + presenter) ============ */
+const TYPE_LABEL = { intro:'פתיחה', chapter:'פרק', photo:'תמונה', 'photo-pair':'זוג', collage:'קולאז׳', timeline:'ציר זמן', quote:'ציטוט', video:'ברכה', 'video-wall':'קיר ברכות', names:'שמות', finale:'סיום', black:'שחור' };
+const KB = { in:{s0:1,s1:1.14}, out:{s0:1.14,s1:1}, left:{s0:1.1,s1:1.1,x0:-3,x1:3}, right:{s0:1.1,s1:1.1,x0:3,x1:-3}, up:{s0:1.08,s1:1.08,y0:3,y1:-3}, down:{s0:1.08,s1:1.08,y0:-3,y1:3}, none:{s0:1,s1:1} };
+function img(id, cls){ const a = A[id]; const i = el('img', cls||''); if (a) i.src = a.src; i.alt=''; i.draggable=false; return i; }
+function words(t){ return t.split(/\s+/).map(w => `<span class="w">${w}</span>`).join(' '); }
+function buildSlide(s){
+  const root = el('div', 'sl ' + s.type);
+  const grain = () => { const g = el('div','grain'); g.style.backgroundImage = `url(${NOISE_URL})`; return g; };
+  switch (s.type) {
+    case 'intro': root.innerHTML = `<div class="center"><div><div class="intro-name">${s.title||'יהודה'}</div><div class="intro-num">80</div><div class="intro-sub">${s.subtitle||''}</div></div></div>`; break;
+    case 'chapter': { const im = img(s.heroAssetId,'img'); root.append(im, el('div','shade'), el('div','ch-label',`<div class="eb">פרק</div><div class="t">${s.label||''}</div><div class="rule"></div><div class="b">${s.blurb||''}</div>`), grain()); break; }
+    case 'photo': { const im = img(s.assetId,'img'); const f = s.focal || [50,50]; im.style.transformOrigin = `${f[0]}% ${f[1]}%`; root.append(im, el('div','vig')); const a = A[s.assetId]; if (a && a.year < 1990) root.append(grain()); if (s.caption || s.year) root.append(el('div','cap',`${s.year?`<span class="yr">${s.year}</span><span class="rule"></span>`:''}<span class="tx">${s.caption||''}</span>`)); break; }
+    case 'photo-pair': { const p = el('div','pair'); s.assetIds.forEach((id,i)=>{ const ph = el('div','ph'); ph.append(img(id)); const a=A[id]; ph.append(el('div','tag', a?a.year:'')); p.append(ph); }); root.append(p); if (s.caption) root.append(el('div','cap',`<span class="tx">${s.caption}</span>`)); break; }
+    case 'collage': { const g = el('div','grid'); s.assetIds.slice(0,5).forEach(id=>{ const ph = el('div','ph'); ph.append(img(id)); g.append(ph); }); root.append(g); if (s.caption) root.append(el('div','cap',`<span class="tx">${s.caption}</span>`)); break; }
+    case 'timeline': { const tl = el('div','tl'); tl.append(el('div','tt', s.title||'')); tl.append(el('div','line')); const ms = s.milestones||[]; const y0 = Math.min(...ms.map(m=>m.year)), y1 = Math.max(...ms.map(m=>m.year)); ms.forEach(m=>{ const d = el('div','ms'); d.style.right = (8 + 84*((m.year-y0)/Math.max(1,y1-y0)))+'%'; if (m.assetId) d.append(img(m.assetId)); d.append(el('div','d'), el('div','y',String(m.year)), el('div','l',m.label)); tl.append(d); }); root.append(tl); break; }
+    case 'quote': root.innerHTML = `<div class="center"><div class="q">${words(s.text||'')}<span class="q-by">— ${s.by||''}</span></div></div>`; break;
+    case 'video': { const a = A[s.assetId]; const bg = img(s.assetId,'vbg'); const fr = el('div','vframe'); fr.append(img(s.assetId), el('div','play','▶'), el('div','vprog','<i></i>')); if (a && !a.portrait) fr.style.inset = '6% 8%'; root.append(bg, fr, el('div','lower',`<div class="rel">${s.relation||''}</div><div class="nm">${s.name||(a?a.name.replace('.mp4',''):'')}</div><div class="bar"></div>`)); break; }
+    case 'names': { const n = el('div','names'); (s.people||[]).forEach(p=>{ const d = el('div','p'); d.append(img(p.assetId), el('span','',p.name)); n.append(d); }); root.innerHTML = `<div class="tl"><div class="tt">${s.title||'המשפחה'}</div></div>`; root.append(n); break; }
+    case 'finale': { const m = el('div','mosaic'); const ids = ASSETS.filter(a=>a.type==='photo').map(a=>a.id); for (let i=0;i<32;i++) m.append(img(ids[i%ids.length])); root.append(m, el('div','shade'), el('div','fin',`<div><div class="n">80</div><div class="t">${s.text||''}</div></div>`)); break; }
+    case 'black': if (s.caption) root.append(el('div','tiny', s.caption)); break;
+  }
+  return root;
+}
+/* GSAP timeline for a slide; opts.preview loops the Ken Burns gently */
+function animateSlide(root, s, opts={}){
+  const tl = gsap.timeline({ paused: !!opts.paused });
+  const dur = slideSeconds(s) || 6;
+  const q = sel => root.querySelectorAll(sel);
+  switch (s.type) {
+    case 'intro':
+      tl.from(q('.intro-name'), { opacity:0, letterSpacing:'.5em', duration:1.6, ease:'power2.out' })
+        .from(q('.intro-num'), { opacity:0, scale:.6, duration:1.4, ease:'expo.out' }, '-=0.8')
+        .from(q('.intro-sub'), { opacity:0, y:20, duration:1 }, '-=0.6'); break;
+    case 'chapter':
+      tl.fromTo(q('.img'), { scale:1.15 }, { scale:1.02, duration:dur+1, ease:'none' }, 0)
+        .from(q('.eb'), { opacity:0, x:20, duration:.8 }, .2).from(q('.t'), { opacity:0, y:30, duration:1 }, .5).from(q('.rule'), { scaleX:0, transformOrigin:'right', duration:.8 }, .9).from(q('.b'), { opacity:0, duration:.8 }, 1.2); break;
+    case 'photo': {
+      const k = KB[s.kenBurns||'in'] || KB.in; const im = q('.img');
+      tl.fromTo(im, { scale:k.s0, xPercent:k.x0||0, yPercent:k.y0||0 }, { scale:k.s1, xPercent:k.x1||0, yPercent:k.y1||0, duration:dur+1.2, ease:'none' }, 0);
+      if (q('.cap').length) tl.from(q('.cap > *'), { opacity:0, y:14, duration:.9, stagger:.15 }, .4); break; }
+    case 'photo-pair':
+      tl.from(q('.ph'), { opacity:0, xPercent:(i)=> i? -12:12, duration:1.1, ease:'power3.out', stagger:.15 }, 0).from(q('.cap'), { opacity:0, duration:.8 }, 1).fromTo(q('.ph img'), { scale:1.08 }, { scale:1, duration:dur, ease:'none' }, 0); break;
+    case 'collage':
+      tl.from(q('.ph'), { opacity:0, scale:.85, y:30, duration:.9, ease:'power3.out', stagger:.12 }, 0).fromTo(q('.ph:first-child img'), { scale:1 }, { scale:1.1, duration:dur, ease:'none' }, 0).from(q('.cap'), { opacity:0, duration:.8 }, 1.2); break;
+    case 'timeline':
+      tl.from(q('.tt'), { opacity:0, y:-20, duration:.8 }, 0).from(q('.line'), { scaleX:0, duration:1.6, ease:'power2.inOut' }, .4).from(q('.ms'), { opacity:0, y:20, duration:.7, stagger:.5, ease:'back.out(1.6)' }, 1); break;
+    case 'quote':
+      tl.from(q('.q .w'), { opacity:0, y:10, duration:.6, stagger:.12, ease:'power2.out' }, .3).from(q('.q-by'), { opacity:0, duration:.8 }, '>-0.2'); break;
+    case 'video':
+      tl.from(q('.vframe'), { opacity:0, scale:.94, duration:.9, ease:'power2.out' }, 0).from(q('.lower > *'), { opacity:0, x:30, duration:.7, stagger:.1 }, .5).to(q('.play'), { opacity:0, duration:.4 }, 1.4).fromTo(q('.vprog i'), { width:'0%' }, { width:'100%', duration:dur, ease:'none' }, 1.2); break;
+    case 'names':
+      tl.from(q('.tt'), { opacity:0, duration:.8 }, 0).from(q('.p'), { opacity:0, scale:.6, duration:.8, stagger:.18, ease:'back.out(1.8)' }, .4); break;
+    case 'finale':
+      tl.from(q('.mosaic img'), { opacity:0, scale:.5, duration:.8, stagger:{ each:.06, from:'random' }, ease:'power2.out' }, 0).from(q('.fin .n'), { opacity:0, scale:.4, duration:1.6, ease:'expo.out' }, 1.6).from(q('.fin .t'), { opacity:0, y:20, duration:1 }, 2.6)
+        .call(() => opts.onFinale && opts.onFinale(), null, 2.4); break;
+    case 'black': if (q('.tiny').length) tl.from(q('.tiny'), { opacity:0, duration:1 }, .5); break;
+  }
+  if (opts.preview) { tl.repeat(-1); tl.repeatDelay(1); }
+  return tl;
+}
+</script>
+<script>
+/* ============ EDITOR ============ */
+let previewTl = null;
+function selectSlide(id, chId){ S.sel.sl = id; S.sel.ch = chId || (findSlide(id)||{}).c?.id || S.sel.ch; renderStory(); renderInspector(); renderPreview(); }
+function selectedChapter(){ return S.chapters.find(c => c.id === S.sel.ch) || S.chapters[0]; }
+
+function renderLib(){
+  const grid = $('#libgrid'); grid.innerHTML = '';
+  const u = usage();
+  const list = ASSETS.filter(a => {
+    if (S.filter === 'photo' && a.type !== 'photo') return false;
+    if (S.filter === 'video' && a.type !== 'video') return false;
+    if (S.filter === 'unused' && u[a.id]) return false;
+    if (S.decade && (a.year < +S.decade || a.year >= +S.decade + 10)) return false;
+    if (S.q && !(a.name + a.folder + a.year).includes(S.q)) return false;
+    return true;
+  });
+  list.forEach(a => {
+    const b = el('button', 'asset' + (S.libSel.has(a.id) ? ' sel' : '')); b.title = `${a.name} · ${a.folder} · ${a.year}`;
+    b.append(img(a.id));
+    if (a.type === 'video') { b.append(el('span','vid','▶'), el('span','nm', a.name.replace('.mp4',''))); } else b.append(el('span','yr', a.year));
+    if (u[a.id]) b.append(el('span','use', u[a.id]));
+    b.addEventListener('click', e => { if (!e.shiftKey && !e.ctrlKey) { const only = S.libSel.size === 1 && S.libSel.has(a.id); S.libSel.clear(); if (!only) S.libSel.add(a.id); } else { S.libSel.has(a.id) ? S.libSel.delete(a.id) : S.libSel.add(a.id); } renderLib(); });
+    b.addEventListener('dblclick', () => { S.libSel = new Set([a.id]); addSelectedToChapter(); });
+    grid.append(b);
+  });
+  $('#lib-count').textContent = `${list.length} / ${ASSETS.length}`;
+  const n = S.libSel.size; $('#lib-add').disabled = n === 0; $('#lib-collage').disabled = n < 3 || n > 5 || Array.from(S.libSel).some(id => A[id].type === 'video');
+  $('#lib-selinfo').textContent = n ? `${n} נבחרו · Ctrl לבחירה מרובה` : '';
+}
+function addSelectedToChapter(){
+  const c = selectedChapter(); if (!c) return;
+  let last = null;
+  Array.from(S.libSel).sort((x,y) => A[x].year - A[y].year).forEach(id => { const a = A[id];
+    const s = a.type === 'video' ? { id:uid(), type:'video', assetId:id, name:a.name.replace('.mp4',''), relation:a.relation, hold:false }
+                                 : { id:uid(), type:'photo', assetId:id, caption:'', year:a.year, kenBurns:['in','out','left','right'][Math.floor(Math.random()*4)], focal:[50,50], seconds:6, advance:'auto', transition:'fade' };
+    c.slides.push(s); last = s; });
+  S.libSel.clear(); commit(`נוספו שקופיות לפרק „${c.title}”`); renderLib(); selectSlide(last.id, c.id); renderTotals();
+}
+function addCollage(){ const c = selectedChapter(); const s = { id:uid(), type:'collage', assetIds:Array.from(S.libSel), caption:'', seconds:9 }; c.slides.push(s); S.libSel.clear(); commit('נוצר קולאז׳'); renderLib(); selectSlide(s.id, c.id); renderTotals(); }
+
+/* storyboard */
+let drag = null;
+function renderStory(){
+  const st = $('#story'); st.innerHTML = '';
+  S.chapters.forEach(c => {
+    const row = el('div','chapter');
+    const head = el('div','ch-head' + (S.sel.ch === c.id && !S.sel.sl ? ' sel' : '')); head.tabIndex = 0;
+    const m = MUSIC.find(x => x.id === c.musicId); const cs = chapterSeconds(c); const short = m && m.sec < cs;
+    head.innerHTML = `<div class="t" contenteditable="true" spellcheck="false">${c.title}</div><div class="m"><span>${c.slides.length} שק׳</span><span class="tabular">${fmt(cs)}</span></div>`;
+    const sel = el('select'); sel.title = 'מוזיקה לפרק'; sel.innerHTML = `<option value="">ללא מוזיקה</option>` + MUSIC.map(x => `<option value="${x.id}" ${x.id===c.musicId?'selected':''}>${x.title}</option>`).join('');
+    sel.addEventListener('change', () => { c.musicId = sel.value; commit('מוזיקה עודכנה'); renderStory(); renderChecks(); });
+    head.append(sel);
+    if (m) { const bar = el('div','musicbar' + (short ? ' short' : '')); const i = el('i'); i.style.width = clamp(m.sec / Math.max(cs,1) * 100, 2, 100) + '%'; bar.append(i); bar.title = short ? `המוזיקה (${fmt(m.sec)}) קצרה מהפרק (${fmt(cs)}) — תתבצע לופ עם crossfade` : `מוזיקה ${fmt(m.sec)} · פרק ${fmt(cs)}`; head.append(bar); }
+    head.querySelector('.t').addEventListener('blur', e => { const v = e.target.textContent.trim(); if (v && v !== c.title) { c.title = v; commit('שם הפרק עודכן'); renderPresenterList(); } });
+    head.querySelector('.t').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+    head.addEventListener('click', e => { if (e.target.tagName === 'SELECT' || e.target.isContentEditable) return; S.sel.ch = c.id; S.sel.sl = null; renderStory(); renderInspector(); renderPreview(); });
+    row.append(head);
+    const strip = el('div','slides');
+    strip.addEventListener('dragover', e => { e.preventDefault(); });
+    strip.addEventListener('drop', e => { e.preventDefault(); if (!drag) return; moveSlide(drag, c.id, null); });
+    c.slides.forEach(s => {
+      const card = el('button', 'slide' + (S.sel.sl === s.id ? ' sel' : '')); card.draggable = true; card.dataset.id = s.id;
+      const thumbId = s.assetId || s.heroAssetId || (s.assetIds||[])[0] || (s.people||[])[0]?.assetId;
+      if (thumbId) card.append(img(thumbId)); else { card.classList.add('textslide'); card.textContent = s.title || s.label || s.text?.slice(0,30) || s.caption || TYPE_LABEL[s.type]; }
+      card.append(el('span','ty', TYPE_LABEL[s.type]));
+      if (s.type !== 'black') card.append(el('span','du', fmt(slideSeconds(s)))); else card.append(el('span','du','ידני'));
+      if (thumbId && (s.caption || s.label || s.name)) card.append(el('span','cap', s.caption || s.label || s.name));
+      card.addEventListener('click', () => selectSlide(s.id, c.id));
+      card.addEventListener('dblclick', () => { playFrom(s.id); });
+      card.addEventListener('dragstart', e => { drag = s.id; e.dataTransfer.effectAllowed = 'move'; card.style.opacity = .5; });
+      card.addEventListener('dragend', () => { drag = null; card.style.opacity = 1; $$('.slide.dragover').forEach(x => x.classList.remove('dragover')); });
+      card.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); card.classList.add('dragover'); });
+      card.addEventListener('dragleave', () => card.classList.remove('dragover'));
+      card.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); card.classList.remove('dragover'); if (drag && drag !== s.id) moveSlide(drag, c.id, s.id); });
+      strip.append(card);
+    });
+    const add = el('button','addslide','+'); add.title = 'הוסף שקופית טקסט'; add.addEventListener('click', () => addTextSlide(c));
+    strip.append(add); row.append(strip); st.append(row);
+  });
+  renderTotals();
+}
+function moveSlide(id, toCh, beforeId){ const f = findSlide(id); if (!f) return; const [s] = f.c.slides.splice(f.i, 1); const c = S.chapters.find(x => x.id === toCh); const bi = beforeId ? c.slides.findIndex(x => x.id === beforeId) : -1; if (bi >= 0) c.slides.splice(bi, 0, s); else c.slides.push(s); commit('הסדר עודכן'); selectSlide(id, toCh); }
+function addTextSlide(c){ const s = { id:uid(), type:'quote', text:'משפט שהמשפחה אומרת עליו', by:'', seconds:8 }; c.slides.push(s); commit('נוספה שקופית ציטוט'); selectSlide(s.id, c.id); }
+function deleteSelected(){ const f = S.sel.sl && findSlide(S.sel.sl); if (!f) return; f.c.slides.splice(f.i, 1); const nxt = f.c.slides[Math.min(f.i, f.c.slides.length-1)]; commit('שקופית נמחקה'); S.sel.sl = nxt ? nxt.id : null; renderEditor(); }
+function duplicateSelected(){ const f = S.sel.sl && findSlide(S.sel.sl); if (!f) return; const copy = JSON.parse(JSON.stringify(f.s)); copy.id = uid(); f.c.slides.splice(f.i+1, 0, copy); commit('שקופית שוכפלה'); selectSlide(copy.id, f.c.id); }
+function renderTotals(){ const t = fmt(totalSeconds()); $('#total-dur').textContent = t; $('#st-dur').textContent = t; $('#st-slides').textContent = allSlides().length; const vids = allSlides().filter(x => x.s.type==='video').length; $('#story-stats').textContent = `${S.chapters.length} פרקים · ${allSlides().length} שקופיות · ${vids} ברכות · ${t}`; }
+
+/* inspector */
+function field(label, inputHtml){ return `<div class="field"><label>${label}</label>${inputHtml}</div>`; }
+function renderInspector(){
+  const box = $('#insp'); const f = S.sel.sl && findSlide(S.sel.sl);
+  if (!f) { const c = selectedChapter(); $('#insp-type').textContent = 'פרק'; box.innerHTML = field('שם הפרק', `<input id="i-chtitle" value="${c.title}">`) + field('כותרת משנה', `<input id="i-chsub" value="${c.subtitle||''}">`) + field('מוזיקה', `<select id="i-chmusic"><option value="">ללא</option>${MUSIC.map(m=>`<option value="${m.id}" ${m.id===c.musicId?'selected':''}>${m.title} · ${fmt(m.sec)}</option>`).join('')}</select>`) + `<div class="muted" style="font-size:12px">${c.slides.length} שקופיות · ${fmt(chapterSeconds(c))}</div><div style="display:flex;gap:6px;margin-top:10px"><button class="btn sm" id="i-chdel">מחק פרק</button></div>`;
+    $('#i-chtitle').addEventListener('change', e => { c.title = e.target.value; commit('שם הפרק עודכן'); renderStory(); });
+    $('#i-chsub').addEventListener('change', e => { c.subtitle = e.target.value; commit(); });
+    $('#i-chmusic').addEventListener('change', e => { c.musicId = e.target.value; commit('מוזיקה עודכנה'); renderStory(); renderChecks(); });
+    $('#i-chdel').addEventListener('click', () => { if (S.chapters.length <= 1) return toast('חייב להישאר פרק אחד'); S.chapters = S.chapters.filter(x => x !== c); S.sel.ch = S.chapters[0].id; commit('הפרק נמחק'); renderEditor(); });
+    renderChecks(); return; }
+  const s = f.s; $('#insp-type').textContent = TYPE_LABEL[s.type];
+  let h = '';
+  const txt = (k, label, multi) => multi ? field(label, `<textarea data-k="${k}" dir="rtl">${s[k]||''}</textarea>`) : field(label, `<input data-k="${k}" dir="rtl" value="${(s[k]??'').toString().replace(/"/g,'&quot;')}">`);
+  const num = (k, label, min, max, step) => field(`${label} <span class="tabular muted" id="v-${k}">${s[k]??''}</span>`, `<input type="range" data-k="${k}" data-num="1" min="${min}" max="${max}" step="${step||1}" value="${s[k]??min}">`);
+  const seg = (k, label, opts) => field(label, `<div class="seg" data-seg="${k}">${opts.map(([v,l])=>`<button aria-pressed="${(s[k]||opts[0][0])===v}" data-v="${v}">${l}</button>`).join('')}</div>`);
+  if (['intro'].includes(s.type)) h += txt('title','שם') + txt('subtitle','כותרת משנה');
+  if (s.type === 'chapter') h += txt('label','כותרת הפרק') + txt('blurb','שורת תיאור');
+  if (s.type === 'photo') h += txt('caption','כיתוב') + field('שנה', `<input data-k="year" data-num="1" type="number" value="${s.year||''}" style="direction:ltr">`) + field('תנועת מצלמה (Ken Burns)', `<div class="kb-grid" data-kb>${[['in','⤢ פנימה'],['out','⤡ החוצה'],['none','● ללא'],['left','← שמאלה'],['right','→ ימינה'],['up','↑ למעלה'],['down','↓ למטה']].map(([v,l])=>`<button aria-pressed="${(s.kenBurns||'in')===v}" data-v="${v}">${l}</button>`).join('')}</div>`) + `<div class="muted" style="font-size:12px;margin:-4px 0 10px">נקודת מוקד: לחיצה על התמונה בתצוגה המקדימה · <span class="tabular">${(s.focal||[50,50]).join('%, ')}%</span></div>`;
+  if (['photo-pair','collage','quote','timeline','names'].includes(s.type) && s.type !== 'quote') h += txt('caption','כיתוב');
+  if (s.type === 'quote') h += txt('text','הציטוט', true) + txt('by','מי אמר');
+  if (s.type === 'finale') h += txt('text','שורת סיום');
+  if (s.type === 'black') h += txt('caption','כיתוב קטן (אופציונלי)');
+  if (s.type === 'video') { const a = A[s.assetId]; const d = a ? a.duration : 8; h += txt('name','שם המברך/ת') + txt('relation','קרבה (נכד, אחיינית…)') + field(`חיתוך · <span class="tabular muted" id="v-trim">${s.trimIn||0}s – ${s.trimOut??d}s</span>`, `<div class="row2"><input type="range" data-k="trimIn" data-num="1" min="0" max="${d-1}" step="0.5" value="${s.trimIn||0}"><input type="range" data-k="trimOut" data-num="1" min="1" max="${d}" step="0.5" value="${s.trimOut??d}"></div>`) + seg('hold','בסיום הסרטון', [['false','המשך אוטומטי'],['true','חכה ללחיצה']]) + `<div class="muted" style="font-size:12px;margin-bottom:10px">${a&&a.portrait?'סרטון לאורך · רקע מטושטש אוטומטי':'סרטון לרוחב'} · הוזן ל־−16 LUFS בעת הקליטה</div>`; }
+  if (s.type !== 'video' && s.type !== 'black') h += num('seconds','משך (שניות)', 2, 20, 0.5);
+  if (['photo','photo-pair','collage','quote','chapter'].includes(s.type)) h += seg('transition','מעבר', [['fade','עמעום'],['dip','דרך שחור'],['push','דחיפה'],['zoom','זום']]) + seg('advance','התקדמות', [['auto','אוטומטי'],['manual','לחיצה']]);
+  h += `<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn sm" id="i-dup">שכפל</button><button class="btn sm" id="i-del">מחק</button><button class="btn sm ghost" id="i-play">▶ מכאן</button></div>`;
+  box.innerHTML = h;
+  $$('[data-k]', box).forEach(inp => { const ev = inp.type === 'range' ? 'input' : 'change'; inp.addEventListener(ev, () => { const k = inp.dataset.k; let v = inp.value; if (inp.dataset.num) v = +v; s[k] = v; const lab = $('#v-'+k); if (lab) lab.textContent = v; const tr = $('#v-trim'); if (tr) tr.textContent = `${s.trimIn||0}s – ${s.trimOut??8}s`; if (ev === 'change' || k === 'seconds') { commit(); } else persist(); renderStory(); renderPreview(true); }); });
+  $$('[data-seg] button', box).forEach(b => b.addEventListener('click', () => { const k = b.closest('[data-seg]').dataset.seg; s[k] = b.dataset.v === 'true' ? true : b.dataset.v === 'false' ? false : b.dataset.v; commit(); renderInspector(); renderPreview(); }));
+  $$('[data-kb] button', box).forEach(b => b.addEventListener('click', () => { s.kenBurns = b.dataset.v; commit(); renderInspector(); renderPreview(); }));
+  $('#i-dup').addEventListener('click', duplicateSelected); $('#i-del').addEventListener('click', deleteSelected); $('#i-play').addEventListener('click', () => playFrom(s.id));
+  renderChecks();
+}
+function renderPreview(keepAnim){
+  const st = $('#ed-stage'); const f = S.sel.sl && findSlide(S.sel.sl);
+  if (!f) { const c = selectedChapter(); const first = c.slides[0]; st.innerHTML = ''; if (first) { st.append(buildSlide(first)); } $('#pv-info').textContent = `פרק „${c.title}” · ${c.slides.length} שקופיות`; return; }
+  const s = f.s;
+  if (keepAnim && st.firstChild && st.dataset.id === s.id) { const capTx = st.querySelector('.cap .tx'); if (capTx && s.caption != null) capTx.textContent = s.caption; const yr = st.querySelector('.cap .yr'); if (yr && s.year) yr.textContent = s.year; const nm = st.querySelector('.lower .nm'); if (nm && s.name) nm.textContent = s.name; const rel = st.querySelector('.lower .rel'); if (rel) rel.textContent = s.relation||''; const q = st.querySelector('.q'); if (q && s.type==='quote') { q.innerHTML = words(s.text||'') + `<span class="q-by">— ${s.by||''}</span>`; } const t = st.querySelector('.ch-label .t'); if (t && s.label != null) t.textContent = s.label; const b = st.querySelector('.ch-label .b'); if (b) b.textContent = s.blurb||''; $('#pv-info').textContent = `${TYPE_LABEL[s.type]} · ${fmt(slideSeconds(s))} · ${s.transition||'fade'}`; return; }
+  if (previewTl) previewTl.kill();
+  st.innerHTML = ''; st.dataset.id = s.id; const root = buildSlide(s); st.append(root);
+  previewTl = animateSlide(root, s, { preview:true });
+  if (s.type === 'photo') { const dot = el('div','focal-dot'); const fo = s.focal||[50,50]; dot.style.left = fo[0]+'%'; dot.style.top = fo[1]+'%'; st.append(dot, el('div','focal-hint','לחיצה = נקודת מוקד'));
+    root.addEventListener('click', e => { const r = root.getBoundingClientRect(); s.focal = [Math.round((e.clientX - r.left)/r.width*100), Math.round((e.clientY - r.top)/r.height*100)]; commit('נקודת המוקד עודכנה'); renderInspector(); renderPreview(); }); }
+  $('#pv-info').textContent = `${TYPE_LABEL[s.type]} · ${fmt(slideSeconds(s))} · ${s.transition||'fade'}`;
+  $('#pv-size').textContent = Math.round(st.getBoundingClientRect().width) + '×' + Math.round(st.getBoundingClientRect().height);
+}
+function renderChecks(){
+  const out = []; const u = usage();
+  allSlides().forEach(({s,c}, i) => { const n = i+1;
+    if (s.type === 'photo' && !A[s.assetId]) out.push(['bad', `שקופית ${n}: אין תמונה`]);
+    if (s.type === 'photo' && !s.caption) out.push(['warn', `שקופית ${n} (${c.title}): ללא כיתוב`]);
+    if (s.type === 'collage' && (s.assetIds.length < 3)) out.push(['bad', `שקופית ${n}: קולאז׳ צריך לפחות 3 תמונות`]);
+    if (s.type === 'video' && !s.name) out.push(['warn', `שקופית ${n}: ברכה ללא שם מברך`]);
+    if ((s.seconds||0) > 12 && s.type === 'photo') out.push(['warn', `שקופית ${n}: ${s.seconds} שניות לתמונה אחת — ארוך`]); });
+  S.chapters.forEach(c => { const m = MUSIC.find(x => x.id === c.musicId); if (!m && c.slides.some(s => s.type !== 'video' && s.type !== 'black')) out.push(['warn', `פרק „${c.title}”: אין מוזיקה`]); if (m && m.sec < chapterSeconds(c)) out.push(['warn', `פרק „${c.title}”: המוזיקה קצרה ב־${fmt(chapterSeconds(c)-m.sec)} — יבוצע לופ`]); });
+  const unused = ASSETS.filter(a => a.type === 'video' && !u[a.id]); if (unused.length) out.push(['warn', `${unused.length} סרטוני ברכה עדיין לא בשימוש: ${unused.map(a=>a.name.replace('.mp4','')).join(', ')}`]);
+  if (!out.length) out.push(['ok','הכל תקין']);
+  $('#checks').innerHTML = out.slice(0,8).map(([k,t]) => `<div class="check ${k}">${t}</div>`).join(''); $('#checks-count').textContent = out.filter(x=>x[0]!=='ok').length || '✓';
+}
+function renderEditor(){ renderLib(); renderStory(); renderInspector(); renderPreview(); renderChecks(); }
+function playFrom(id){ window.__playFrom = id; goView('show'); if (player) { if (player.started) player.goToId(id); else { player.pendingId = id; } } }
+
+function initEditor(){
+  $$('#lib-filters .chip').forEach(ch => ch.addEventListener('click', () => { S.filter = ch.dataset.f; $$('#lib-filters .chip').forEach(x => x.setAttribute('aria-pressed', x === ch)); renderLib(); }));
+  $('#lib-decade').addEventListener('change', e => { S.decade = e.target.value; renderLib(); });
+  $('#lib-search').addEventListener('input', e => { S.q = e.target.value.trim(); renderLib(); });
+  $('#lib-add').addEventListener('click', addSelectedToChapter); $('#lib-collage').addEventListener('click', addCollage);
+  $('#undo-btn').addEventListener('click', undo); $('#redo-btn').addEventListener('click', redo);
+  $('#add-chapter').addEventListener('click', () => { const c = { id:uid(), title:'פרק חדש', slides:[] , musicId:'' }; S.chapters.push(c); S.sel.ch = c.id; S.sel.sl = null; commit('נוסף פרק'); renderEditor(); });
+  $('#play-from').addEventListener('click', () => playFrom(S.sel.sl || allSlides()[0].s.id));
+  document.addEventListener('keydown', e => { if (!$('#view-editor').classList.contains('active')) return; const tag = (e.target.tagName||'').toLowerCase(); if (['input','textarea','select'].includes(tag) || e.target.isContentEditable) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
+    if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+    if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
+    if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateSelected(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { const all = allSlides(); const i = all.findIndex(x => x.s.id === S.sel.sl); if (i < 0) return; const j = clamp(i + (e.key === 'ArrowLeft' ? 1 : -1), 0, all.length-1); selectSlide(all[j].s.id, all[j].c.id); }
+    if (e.key.toLowerCase() === 'a' && S.libSel.size) addSelectedToChapter(); });
+  const first = allSlides()[0]; S.sel.ch = S.chapters[0].id; S.sel.sl = first ? first.s.id : null;
+  renderEditor();
+  const fit = () => { const wrap = $('#ed-stage').parentElement, st = $('#ed-stage'); const W = wrap.clientWidth - 28, H = wrap.clientHeight - 28; if (W <= 0 || H <= 0) return; st.style.width = Math.min(W, H * 16 / 9) + 'px'; $('#pv-size').textContent = Math.round(st.getBoundingClientRect().width) + '×' + Math.round(st.getBoundingClientRect().height); };
+  new ResizeObserver(fit).observe($('#ed-stage').parentElement); fit();
+}
+</script>
+<script>
+/* ============ AUDIO BUS (synth placeholder for music; real build streams files) ============ */
+class AudioBus {
+  constructor(){ this.ctx = null; this.musicLevel = .7; this.muted = false; this.ducked = false; }
+  unlock(){ if (this.ctx) { this.ctx.resume(); return; } try { const C = window.AudioContext || window.webkitAudioContext; this.ctx = new C(); } catch(e) { return; }
+    const c = this.ctx; this.master = c.createGain(); this.master.gain.value = .5; this.master.connect(c.destination);
+    this.music = c.createGain(); this.music.gain.value = this.musicLevel; this.filter = c.createBiquadFilter(); this.filter.type = 'lowpass'; this.filter.frequency.value = 700; this.music.connect(this.filter); this.filter.connect(this.master);
+    this.video = c.createGain(); this.video.gain.value = 0; this.video.connect(this.master);
+    this.oscs = []; [220, 277.18, 329.63, 440, 164.81].forEach((f, i) => { const o = c.createOscillator(); o.type = i%2 ? 'triangle' : 'sine'; o.frequency.value = f; o.detune.value = (i-2)*4; const g = c.createGain(); g.gain.value = i===4 ? .08 : .05; o.connect(g); g.connect(this.music); o.start(); this.oscs.push(o); });
+    const lfo = c.createOscillator(); lfo.frequency.value = .08; const lg = c.createGain(); lg.gain.value = 250; lfo.connect(lg); lg.connect(this.filter.frequency); lfo.start();
+    this.chordTimer = setInterval(() => { if (!this.oscs.length) return; const sets = [[220,277.18,329.63,440,164.81],[196,246.94,293.66,392,146.83],[174.61,220,261.63,349.23,130.81],[207.65,261.63,311.13,415.3,155.56]]; const s = sets[Math.floor(Math.random()*sets.length)]; this.oscs.forEach((o,i) => o.frequency.setTargetAtTime(s[i], c.currentTime, 1.5)); }, 9000);
+  }
+  setMusic(level, t=.6){ if (!this.ctx) return; this.music.gain.setTargetAtTime(this.muted ? 0 : level, this.ctx.currentTime, t/3); this.meter(level); }
+  duck(on){ this.ducked = on; this.setMusic(on ? this.musicLevel*.12 : this.musicLevel, on ? .6 : 1.2); if (this.ctx) this.video.gain.setTargetAtTime(on ? 1 : 0, this.ctx.currentTime, .2); const v = $('#vu-video'), vv = $('#vu-video-v'); if (v) { v.style.width = on ? '85%' : '0%'; vv.textContent = on ? '85%' : '0%'; } }
+  mute(m){ this.muted = m; this.setMusic(this.ducked ? this.musicLevel*.12 : this.musicLevel); }
+  meter(level){ const m = $('#vu-music'), mv = $('#vu-music-v'); const pct = Math.round((this.muted?0:level)*100); if (m) { m.style.width = pct+'%'; mv.textContent = pct+'%'; } }
+  stop(){ if (this.ctx) this.ctx.suspend(); }
+}
+
+/* ============ PLAYER ============ */
+class Player {
+  constructor(root, opts={}){ this.root = root; this.opts = opts; this.layers = [root.querySelector('.layer:nth-child(1)') || root.appendChild(el('div','layer')), root.querySelector('.layer:nth-child(2)') || root.appendChild(el('div','layer'))]; this.cur = 0; this.idx = -1; this.started = false; this.paused = false; this.black = false; this.tl = null; this.timer = null; this.audio = opts.silent ? null : new AudioBus(); this.listeners = []; this.startedAt = 0; this.pendingId = null; }
+  on(fn){ this.listeners.push(fn); }
+  emit(){ this.listeners.forEach(fn => fn(this)); }
+  list(){ return allSlides(); }
+  start(){ this.started = true; this.startedAt = Date.now(); if (this.audio) { this.audio.unlock(); this.audio.setMusic(.7); } const sg = this.root.querySelector('.startgate'); if (sg) sg.hidden = true; const id = this.pendingId || window.__playFrom; this.pendingId = null; window.__playFrom = null; const i = id ? this.list().findIndex(x => x.s.id === id) : 0; this.go(Math.max(0, i), 'fade'); }
+  goToId(id){ const i = this.list().findIndex(x => x.s.id === id); if (i >= 0) this.go(i, 'fade'); }
+  go(i, trans){
+    const L = this.list(); if (!L.length) return; i = clamp(i, 0, L.length-1); const { s, c } = L[i]; const prev = this.idx; this.idx = i; this.black = false;
+    if (this.tl) this.tl.kill(); if (this.timer) this.timer.kill();
+    const inL = this.layers[1 - this.cur], outL = this.layers[this.cur]; this.cur = 1 - this.cur;
+    inL.innerHTML = ''; const root = buildSlide(s); inL.append(root); inL.style.zIndex = 2; outL.style.zIndex = 1;
+    const t = trans || s.transition || 'fade'; const d = .9;
+    gsap.killTweensOf([inL, outL]);
+    if (t === 'dip') { gsap.fromTo(inL, { opacity:0 }, { opacity:1, duration:d*.6, delay:d*.5, ease:'power1.inOut' }); gsap.to(outL, { opacity:0, duration:d*.5, ease:'power1.in' }); }
+    else if (t === 'push') { gsap.fromTo(inL, { xPercent:-100, opacity:1 }, { xPercent:0, duration:d, ease:'power3.inOut' }); gsap.fromTo(outL, { xPercent:0 }, { xPercent:100, opacity:1, duration:d, ease:'power3.inOut', onComplete:()=>{ outL.style.opacity=0; gsap.set(outL,{xPercent:0}); } }); }
+    else if (t === 'zoom') { gsap.fromTo(inL, { opacity:0, scale:1.15 }, { opacity:1, scale:1, duration:d, ease:'power2.out' }); gsap.to(outL, { opacity:0, scale:.92, duration:d*.8, ease:'power2.in', onComplete:()=>gsap.set(outL,{scale:1}) }); }
+    else { gsap.fromTo(inL, { opacity:0 }, { opacity:1, duration:d, ease:'power1.inOut' }); gsap.to(outL, { opacity:0, duration:d, ease:'power1.inOut' }); }
+    this.tl = animateSlide(root, s, { onFinale: () => this.confetti() });
+    const isVideo = s.type === 'video'; if (this.audio) { if (isVideo) this.audio.duck(true); else if (this.audio.ducked) gsap.delayedCall(.2, () => this.audio.duck(false)); }
+    const secs = slideSeconds(s); const manual = s.advance === 'manual' || s.type === 'black' || (isVideo && s.hold);
+    if (!manual && !this.paused) this.timer = gsap.delayedCall(secs + (isVideo ? 1.4 : .4), () => this.next());
+    this.hud(s, c, secs, manual); this.emit();
+  }
+  next(){ if (this.idx >= this.list().length - 1) { this.hudMsg('סוף המצגת'); return; } this.go(this.idx + 1); }
+  prev(){ this.go(Math.max(0, this.idx - 1)); }
+  pause(){ this.paused = !this.paused; this.root.classList.toggle('paused', this.paused); if (this.paused) { if (this.timer) this.timer.pause(); if (this.tl) this.tl.pause(); } else { if (this.timer) this.timer.resume(); if (this.tl) this.tl.resume(); } $('#hud-mode') && ($('#hud-mode').textContent = this.paused ? 'paused' : 'auto'); this.emit(); }
+  toggleBlack(){ this.black = !this.black; this.layers.forEach(l => gsap.to(l, { opacity: this.black ? 0 : 1, duration:.5 })); if (this.black) { this.timer && this.timer.pause(); this.tl && this.tl.pause(); } else { this.timer && this.timer.resume(); this.tl && this.tl.resume(); } }
+  hud(s, c, secs, manual){ const idx = $('#hud-idx'), ch = $('#hud-ch'), bar = $('#hud-bar'), mode = $('#hud-mode'); if (!idx || this.opts.silent) return; idx.textContent = `${this.idx+1} / ${this.list().length}`; ch.textContent = c.title; mode.textContent = manual ? 'manual' : (this.paused ? 'paused' : 'auto'); gsap.killTweensOf(bar); gsap.fromTo(bar, { width:'0%' }, { width:'100%', duration: manual ? 0 : secs, ease:'none' }); $('#now-playing').textContent = `${c.title} · ${TYPE_LABEL[s.type]}${s.caption?' · '+s.caption:''}${s.name?' · '+s.name:''}`; const n = this.list()[this.idx+1]; $('#now-next').textContent = n ? `next: ${n.c.title} · ${TYPE_LABEL[n.s.type]}` : 'next: end'; }
+  hudMsg(m){ const ch = $('#hud-ch'); if (ch) ch.textContent = m; }
+  confetti(){ if (this.opts.silent) return; const c = document.createElement('canvas'); c.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4'; this.root.append(c); const x = c.getContext('2d'); const W = c.width = this.root.clientWidth, H = c.height = this.root.clientHeight; const parts = Array.from({length:140}, () => ({ x:Math.random()*W, y:-20-Math.random()*H*.5, vx:(Math.random()-.5)*2, vy:2+Math.random()*3, r:4+Math.random()*6, a:Math.random()*6, col:['#d4a84b','#f1d38a','#ece6d8','#b8862e'][Math.floor(Math.random()*4)] })); let t0 = performance.now(); const step = now => { x.clearRect(0,0,W,H); parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.a += .1; x.save(); x.translate(p.x,p.y); x.rotate(p.a); x.fillStyle = p.col; x.fillRect(-p.r/2,-p.r/4,p.r,p.r/2); x.restore(); }); if (now - t0 < 6000) requestAnimationFrame(step); else c.remove(); }; requestAnimationFrame(step); }
+  fullscreen(){ const r = this.root; if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); else if (r.requestFullscreen) r.requestFullscreen().catch(() => toast('Fullscreen not available in this view')); }
+  restart(){ this.idx = -1; this.paused = false; this.root.classList.remove('paused'); this.go(0, 'dip'); }
+  elapsed(){ return this.started ? (Date.now() - this.startedAt)/1000 : 0; }
+  remaining(){ const L = this.list(); return L.slice(Math.max(0,this.idx)).reduce((t,x) => t + slideSeconds(x.s), 0); }
+}
+let player = null, heroPlayer = null;
+function initShow(){
+  const root = $('#player'); player = new Player(root);
+  $('#start-btn').addEventListener('click', () => { player.start(); root.focus(); });
+  root.addEventListener('keydown', e => { if (!player.started) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); player.start(); } return; } const k = e.key;
+    if ([' ','ArrowRight','PageDown','Enter'].includes(k)) { e.preventDefault(); player.next(); }
+    else if (['ArrowLeft','PageUp','Backspace'].includes(k)) { e.preventDefault(); player.prev(); }
+    else if (k.toLowerCase() === 'p') player.pause(); else if (k.toLowerCase() === 'b') player.toggleBlack(); else if (k.toLowerCase() === 'm') { player.audio.mute(!player.audio.muted); toast(player.audio.muted ? 'music muted' : 'music on'); } else if (k.toLowerCase() === 'f') player.fullscreen(); });
+  root.addEventListener('click', e => { if (player.started && !e.target.closest('button')) { player.next(); root.focus(); } });
+  $('#btn-prev').addEventListener('click', () => player.started && player.prev()); $('#btn-next').addEventListener('click', () => player.started ? player.next() : player.start()); $('#btn-pause').addEventListener('click', () => player.started && player.pause()); $('#btn-black').addEventListener('click', () => player.started && player.toggleBlack()); $('#btn-mute').addEventListener('click', () => { player.audio.mute(!player.audio.muted); $('#btn-mute').textContent = player.audio.muted ? 'unmute' : 'mute'; }); $('#btn-fs').addEventListener('click', () => player.fullscreen()); $('#btn-restart').addEventListener('click', () => player.started ? player.restart() : player.start());
+  /* hero loop: silent, cycles a few representative slides */
+  const hs = $('#hero-stage'); heroPlayer = new Player(hs, { silent:true }); heroPlayer.list = () => allSlides().filter(x => ['intro','chapter','photo','collage','quote','video','finale'].includes(x.s.type)).filter((x,i) => i % 2 === 0 || x.s.type==='intro'); heroPlayer.hud = () => {}; heroPlayer.next = function(){ this.go((this.idx + 1) % this.list().length); }; heroPlayer.started = true; heroPlayer.go(0);
+  /* static thumbnails */
+  const L = allSlides(); const pick = t => (L.find(x => x.s.type === t) || L[0]).s;
+  [['#th-editor','chapter'],['#th-show','photo'],['#th-presenter','quote'],['#th-ingest','collage']].forEach(([sel, t]) => { const box = $(sel); box.style.containerType = 'inline-size'; box.style.direction = 'rtl'; const r = buildSlide(pick(t)); box.append(r); animateSlide(r, pick(t), { preview:true }); });
+}
+
+/* ============ PRESENTER ============ */
+function renderPresenterList(){ const L = allSlides(); const box = $('#pr-list'); if (!box) return; box.innerHTML = ''; const idx = player ? player.idx : -1; L.forEach((x,i) => { const s = el('span', i === idx ? 'cur' : ''); s.textContent = `${i+1} ${TYPE_LABEL[x.s.type]}`; box.append(s); }); }
+function initPresenter(){
+  const cur = $('#pr-cur'), nxt = $('#pr-next');
+  const paint = () => { const L = allSlides(); const i = player.idx; [cur, nxt].forEach(b => { Array.from(b.children).forEach(ch => { if (!ch.classList.contains('pr-lab')) ch.remove(); }); }); if (i < 0) { cur.append(el('div','sl black','<div class="tiny">המצגת עוד לא התחילה — לחץ „התחל” בלשונית Show</div>')); return; } const a = buildSlide(L[i].s); cur.append(a); animateSlide(a, L[i].s, { preview:true }); if (L[i+1]) { nxt.append(buildSlide(L[i+1].s)); } else nxt.append(el('div','sl black','<div class="tiny">סוף</div>')); const s = L[i].s; $('#pr-notes').textContent = [L[i].c.title, s.caption, s.label, s.blurb, s.text, s.name ? 'ברכה: '+s.name+(s.relation?' ('+s.relation+')':'') : null, s.advance === 'manual' || s.type === 'black' ? '⏸ ממתין ללחיצה' : null].filter(Boolean).join(' · '); renderPresenterList(); };
+  player.on(paint); paint();
+  setInterval(() => { $('#pr-clock').textContent = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}); if (player) { $('#pr-elapsed').textContent = fmt(player.elapsed()); $('#pr-remaining').textContent = fmt(player.remaining()); } }, 1000);
+  window.addEventListener('show-changed', () => { renderPresenterList(); });
+}
+
+/* ============ INGEST SIMULATION ============ */
+function initIngest(){
+  const log = $('#ingest-log'), prog = $('#ingest-prog'), cnt = $('#ingest-count'), eta = $('#ingest-eta'), pill = $('#ingest-pill'); let timers = [];
+  const line = (cls, t) => { const s = el('span', cls, t + '\n'); log.append(s); log.scrollTop = log.scrollHeight; };
+  const step = (k, state, txt) => { const st = $(`.step[data-s="${k}"]`); st.className = 'step ' + state; if (txt) st.querySelector('.s').textContent = txt; };
+  const reset = () => { timers.forEach(clearTimeout); timers = []; log.innerHTML = '<span class="dim">ready. drop files or press scan.</span>\n'; prog.style.width = '0'; cnt.textContent = '0 / 2,347'; eta.textContent = '—'; pill.className = 'pill'; pill.innerHTML = '<span class="dot"></span>ממתין'; $$('.step').forEach((s,i) => { s.className = 'step'; s.querySelector('.s').textContent = '—'; }); ['#ing-photos','#ing-videos','#ing-warn'].forEach(s => $(s).textContent = '0'); };
+  const run = () => { reset(); pill.className = 'pill warn'; pill.innerHTML = '<span class="dot"></span>רץ'; let t = 0; const at = (ms, fn) => { t += ms; timers.push(setTimeout(fn, t)); };
+    at(100, () => { step('scan','run'); line('', 'scan   media/photos  … 2,318 files in 41 folders'); });
+    at(500, () => { line('', 'scan   media/videos/greetings … 14 files'); line('', 'scan   media/music … 3 files'); });
+    at(600, () => { line('ok', 'hash   2,335 files hashed (xxh64) · 2,335 new · 0 cached'); step('scan','done','1.4s'); step('exif','run'); });
+    at(700, () => { line('', 'exif   DateTimeOriginal found: 1,902 · folder hint: 311 · mtime fallback: 105'); line('warn', 'exif   scan_0412.jpg: no date, folder "ילדות" → 1950s (editable)'); step('exif','done','0.9s'); step('img','run'); });
+    let photos = 0; const total = 2318; for (let i = 1; i <= 20; i++) at(260, () => { photos = Math.min(total, Math.round(total * i / 20)); $('#ing-photos').textContent = photos.toLocaleString(); const p = photos / 2347 * 100; prog.style.width = p + '%'; cnt.textContent = `${photos.toLocaleString()} / 2,347`; eta.textContent = `~${Math.max(1, Math.round((20 - i) * 0.26 * 60 / 12))}s`;
+      if (i === 4) { line('warn', 'img    IMG_2231.HEIC: sharp cannot decode HEVC → heic-convert fallback OK (1.1s)'); $('#ing-warn').textContent = '1'; }
+      if (i === 9) { line('warn', 'img    scan_0871.jpg: truncated JPEG, skipped — re-scan this print'); $('#ing-warn').textContent = '2'; }
+      if (i === 13) line('', `img    ${photos.toLocaleString()} / ${total.toLocaleString()} · 7 workers · 2560/400/blur webp`);
+      if (i === 20) { line('ok', `img    ${total.toLocaleString()} photos → 6,954 derivatives (1.9 GB → 412 MB)`); step('img','done','5.2s*'); step('vid','run'); } });
+    GREETERS.concat(['רותם','שירה','אלון','דניאל','ליה','אורי','נגה','יובל']).forEach((n, i) => at(220, () => { $('#ing-videos').textContent = i + 1; const port = i % 3 !== 2; line(i === 5 ? 'warn' : '', `ffmpeg ${n}.mp4 · ${port ? '1080×1920 portrait' : '1920×1080'} · ${8 + i}s · loudnorm ${i===5?'+14.2 dB (was very quiet)':`${(Math.random()*6-3).toFixed(1)} dB`} · poster@1s`); if (i === 5) $('#ing-warn').textContent = '3'; prog.style.width = (2318 + i + 1) / 2347 * 100 + '%'; cnt.textContent = `${(2318+i+1).toLocaleString()} / 2,347`; }));
+    at(300, () => { step('vid','done','14 clips'); step('music','run'); MUSIC.forEach(m => line('', `music  ${m.title} · ${fmt(m.sec)} · peaks 1,024 pts`)); });
+    at(400, () => { step('music','done','3 tracks'); step('index','run'); line('', 'index  writing .cache/index.json (2,335 assets)'); });
+    at(500, () => { step('index','done','OK'); prog.style.width = '100%'; cnt.textContent = '2,347 / 2,347'; eta.textContent = 'done'; pill.className = 'pill ok'; pill.innerHTML = '<span class="dot"></span>הושלם'; line('ok', 'done   library updated in the editor · 3 warnings to review'); line('dim', '* simulated timings; a real 2,300-photo first pass takes 6–12 min on a laptop, re-runs take seconds'); });
+  };
+  $('#ingest-run').addEventListener('click', run); $('#ingest-reset').addEventListener('click', reset);
+  const dz = $('#dropzone'); ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.style.borderColor = 'var(--gold)'; })); ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.style.borderColor = ''; if (ev === 'drop') { const n = e.dataTransfer.files.length; toast(n ? `${n} קבצים — בפרוטוטיפ מריצים סימולציה` : 'סימולציה'); run(); } }));
+}
+
+/* ============ ROUTING + INIT ============ */
+function goView(v){ $$('.view').forEach(x => x.classList.toggle('active', x.id === 'view-' + v)); $$('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.view === v)); try { history.replaceState(null, '', '#' + v); } catch(e) {} if (v === 'editor') renderPreview(); if (v === 'show') $('#player').focus({ preventScroll:true }); window.scrollTo({ top:0 }); }
+const boot = () => {
+  $$('.tab').forEach(t => t.addEventListener('click', () => goView(t.dataset.view)));
+  $$('[data-goto]').forEach(b => b.addEventListener('click', e => { if (b.id === 'play-from') return; goView(b.dataset.goto); }));
+  initEditor(); initShow(); initPresenter(); initIngest();
+  window.addEventListener('show-changed', () => { if (heroPlayer) heroPlayer.list = () => allSlides().filter(x => ['intro','chapter','photo','collage','quote','video','finale'].includes(x.s.type)).filter((x,i) => i % 2 === 0 || x.s.type==='intro'); renderTotals(); });
+  $$('.plan-day input[type=checkbox]').forEach(cb => { cb.checked = !!store('sy80-plan-' + cb.dataset.k); cb.addEventListener('change', () => store('sy80-plan-' + cb.dataset.k, cb.checked)); });
+  const h = (location.hash || '').replace('#',''); if (['overview','editor','show','presenter','ingest','analysis','plan'].includes(h)) goView(h);
+};
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
+</script>

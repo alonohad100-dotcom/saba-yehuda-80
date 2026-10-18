@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.cache/
+media/
+data/library.db
+data/library.db-*
+data/backups/
+*.log
+.DS_Store
+Thumbs.db
+.audit/

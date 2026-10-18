@@ -1,0 +1,21 @@
+# Colour themes — research, plan and status
+
+**Goal:** switch the whole look of the show (grounds, text, accent, typefaces, grain, photo tint) with one click: globally in the editor, per chapter or per slide, and live during the presentation from the keyboard, the HUD or the presenter window.
+
+**Status (18 Oct 2026, late):** implemented in this session; see docs/AUDIT.md section 9 for the headless verification.
+
+## Research (what the choices rest on)
+- **Switching mechanism.** Themes are CSS custom properties keyed by `[data-theme]`; switching changes one attribute. The browser's View Transitions API (`document.startViewTransition`, Baseline 2025, Chrome/Edge 111+, Safari 18+, Firefox 144+) wraps the attribute change in a native cross-fade; feature detection falls back to an instant change, and reduced-motion users get no animation. Sources: [MDN startViewTransition](https://developer.mozilla.org/en-US/docs/Web/API/Document/startViewTransition), [Chrome: view transitions in 2025](https://developer.chrome.com/blog/view-transitions-in-2025), [CSS View Transitions guide](https://devtoolbox.dedyn.io/blog/css-view-transitions-complete-guide).
+- **Typefaces.** Each theme can pair its own Hebrew display and numeral faces. Added as embedded fontsource packages (no network): Rubik (modern sans, Hebrew by Meir Sadan), Secular One (bold display, Michal Sahar 2015), David Libre (Google's free David, the formal Israeli correspondence face), Bellefair (elegant display serif), Miriam Libre (revival of Rafael Frank's 1908 Miriam), Amatic SC (hand-lettered). Sources: [Awesome Hebrew Fonts](https://github.com/danielrosehill/Awesome-Hebrew-Fonts), [Open Siddur font table](https://opensiddur.org/help/fonts/), [fontsource: Miriam Libre](https://fontsource.org/fonts/miriam-libre/cdn), [fontsource: David Libre](https://fontsource.org/fonts/david-libre/about).
+- **Palettes for a TV in a dim room.** Projectors and TVs reduce contrast, so pairings should look almost too strong on a monitor; off-white instead of pure white; dark ground with light text for dim rooms, dark text on light ground is also readable when the room is lit; never mid-tone on mid-tone; one or two accents only; gold works for headings and rules on dark fields, not as text on ivory. Sources: [Presentation colour schemes that work](https://madegooddesigns.com/presentation-color-schemes/), [think-cell on colour](https://think-cell.com/en/order/academics/becoming-visual/2/color), [text/background contrast checklist](https://www.ontariolearn.com/checklist/Text-Backgrounds.html).
+
+## Design
+- `shared/themes.ts` is the single source of truth: 11 themes (9 dark, 2 light), each with ground gradient, text, text-over-photos, accent and tint, shade triplet for glass and shades, grain and vignette strength, three typefaces, a confetti palette and an optional photo tint (vintage sepia, monochrome). `themeCss()` turns the catalogue into `[data-theme]` rules injected once at start-up; the default theme is also set on `:root`.
+- The show CSS reads only `--t-*` tokens (an override block at the end of `global.css`), so every slide type, the start gate, overlays and captions follow the theme. Captions and overlays over photos always use the theme's light "on-media" colour with a dark glass, so they stay readable on light themes too.
+- Overlay colours have an "auto" option that follows the theme (text → on-media, symbols and shapes → accent); the text presets use it so a designed slide re-themes cleanly.
+- Model: `settings.theme`, `chapter.theme`, `slide.theme`. Resolution: live override → slide → chapter → show.
+- Engine: `Player.applyTheme()` sets `data-theme` on the player with a view transition; `setLiveTheme()` overrides for the session; confetti reads the theme palette; `T` / `Shift+T` cycle themes; the HUD has a palette button; the presenter has a theme list and "back to the show's theme".
+- Editor: theme picker in the top bar (cards with swatches and typeface sample), per-chapter and per-slide overrides in the inspector, the preview stage carries the resolved theme, settings dialog shows the picker too.
+
+## Not included
+Custom user-defined themes (colour pickers for each token). The eleven curated themes cover the brief; a custom editor would be a day of UI for a feature that is risky to tune on the night.
