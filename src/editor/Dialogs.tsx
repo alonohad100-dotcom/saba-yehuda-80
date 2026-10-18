@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Play, RotateCcw, Tag } from 'lucide-react';
+import { X, Play, RotateCcw, Tag, Settings, History, HardDriveDownload, HelpCircle, Sun, Moon } from 'lucide-react';
+import { useChrome } from '@/chrome';
 import { useUi } from './ui';
 import { useShow, saveNow } from '@/store/show';
 import { useLibrary } from '@/store/library';
@@ -9,10 +10,10 @@ import { fmtTime, Show as ShowSchema, TRANSITION_LABEL } from '@shared/model';
 import { AutoShowDialog } from './AutoShowDialog';
 import { ThemeGrid } from './ThemePicker';
 
-function Dialog({ title, children, footer, onClose, wide }: { title: string; children: React.ReactNode; footer?: React.ReactNode; onClose: () => void; wide?: boolean }) {
+function Dialog({ title, icon, children, footer, onClose, wide }: { title: string; icon?: React.ReactNode; children: React.ReactNode; footer?: React.ReactNode; onClose: () => void; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const d = ref.current; if (!d) return; if (!d.open) d.showModal(); const onCancel = (e: Event) => { e.preventDefault(); onClose(); }; d.addEventListener('cancel', onCancel); return () => { d.removeEventListener('cancel', onCancel); if (d.open) d.close(); }; }, [onClose]);
-  return <dialog ref={ref} style={wide ? { width: 'min(92vw, 900px)' } : undefined} onClick={(e) => { if (e.target === ref.current) onClose(); }}><div className="dlg-h"><h2>{title}</h2><button className="btn ghost icon x" onClick={onClose}><X /></button></div><div className="dlg-b">{children}</div>{footer && <div className="dlg-f">{footer}</div>}</dialog>;
+  return <dialog ref={ref} style={wide ? { width: 'min(92vw, 900px)' } : undefined} onClick={(e) => { if (e.target === ref.current) onClose(); }}><div className="dlg-h">{icon}<h2>{title}</h2><button className="btn ghost icon x" onClick={onClose} aria-label="סגור"><X /></button></div><div className="dlg-b">{children}</div>{footer && <div className="dlg-f">{footer}</div>}</dialog>;
 }
 
 export function Dialogs() {
@@ -25,16 +26,24 @@ export function Dialogs() {
   return null;
 }
 
+/** The tool's own light/dark look (independent of the show's colour theme). */
+function ChromeChoice() {
+  const theme = useChrome(s => s.theme); const set = useChrome(s => s.set);
+  return <div className="row" style={{ gap: 10 }}><div className="seg"><button aria-pressed={theme === 'light'} onClick={() => set('light')}><Sun /> בהיר</button><button aria-pressed={theme === 'dark'} onClick={() => set('dark')}><Moon /> כהה</button></div><span className="muted small">משנה רק את העורך, המציג והמדריך. המצגת עצמה נשארת בערכת הצבעים שלה.</span></div>;
+}
+
 function SettingsDialog({ onClose }: { onClose: () => void }) {
   const show = useShow(s => s.show)!; const updS = useShow(s => s.updateSettings); const updM = useShow(s => s.updateMeta); const st = show.settings;
   const R = ({ label, k, min, max, step, fmt }: { label: string; k: keyof typeof st; min: number; max: number; step: number; fmt: (v: number) => string }) => <div className="field"><label><span>{label}</span><b>{fmt(st[k] as number)}</b></label><input type="range" min={min} max={max} step={step} value={st[k] as number} onChange={e => updS({ [k]: +e.target.value } as any)} /></div>;
   return (
-    <Dialog title="הגדרות המצגת" onClose={onClose} footer={<button className="btn primary" onClick={onClose}>סגור</button>}>
+    <Dialog title="הגדרות המצגת" icon={<Settings />} onClose={onClose} footer={<button className="btn" onClick={onClose}>סגור</button>}>
       <div className="field-row">
         <div className="field"><label>כותרת (מסך הפתיחה)</label><input className="he" value={show.meta.title} onChange={e => updM({ title: e.target.value })} /></div>
         <div className="field"><label>תאריך האירוע</label><input type="date" value={show.meta.date} onChange={e => updM({ date: e.target.value })} /></div>
       </div>
-      <h4 style={{ margin: '10px 0' }}>ערכת צבעים</h4>
+      <h4 style={{ margin: '10px 0' }}>מראה הממשק</h4>
+      <ChromeChoice />
+      <h4 style={{ margin: '14px 0 10px' }}>ערכת צבעים של המצגת</h4>
       <ThemeGrid value={st.theme} onChange={id => id && updS({ theme: id })} />
       <h4 style={{ margin: '10px 0' }}>תזמון</h4>
       <R label="משך תמונה (ברירת מחדל)" k="defaultSlideSeconds" min={3} max={15} step={.5} fmt={v => `${v}s`} />
@@ -59,7 +68,7 @@ function VersionsDialog({ onClose }: { onClose: () => void }) {
   const showDetails = async (id: number) => { if (details[id]) { setDetails(d => { const n = { ...d }; delete n[id]; return n; }); return; } const v = await api.version(id); setDetails(d => ({ ...d, [id]: v.chapters.map(c => `${c.title} (${c.slides.length})`).join(' · ') })); };
   const applyLabel = async (id: number) => { if (!rowLabel.trim()) return; await api.labelVersion(id, rowLabel.trim()); setLabelId(null); setRowLabel(''); toast('הגרסה סומנה — תישמר לתמיד', 'ok'); void reload(); };
   return (
-    <Dialog title="היסטוריית גרסאות" onClose={onClose} wide footer={<><input value={label} onChange={e => setLabel(e.target.value)} placeholder="שם לגרסה הנוכחית (למשל: לפני שינוי הסדר)" style={{ flex: 1 }} /><button className="btn primary" disabled={!label} onClick={async () => { await saveNow(label); setLabel(''); toast('הגרסה נשמרה עם שם', 'ok'); void reload(); }}><Tag /> שמור גרסה מסומנת</button></>}>
+    <Dialog title="היסטוריית גרסאות" icon={<History />} onClose={onClose} wide footer={<><input value={label} onChange={e => setLabel(e.target.value)} placeholder="שם לגרסה הנוכחית (למשל: לפני שינוי הסדר)" style={{ flex: 1 }} /><button className="btn primary" disabled={!label} onClick={async () => { await saveNow(label); setLabel(''); toast('הגרסה נשמרה עם שם', 'ok'); void reload(); }}><Tag /> שמור גרסה מסומנת</button></>}>
       <p className="muted small" style={{ marginBottom: 10 }}>כל שמירה אוטומטית נרשמת (נשמרות 300 האחרונות). גרסאות עם שם נשמרות לתמיד. השחזור עצמו נרשם כגרסה חדשה, כך שאפשר תמיד לחזור. „פרטים” מציג את פרקי הגרסה; „תן שם” הופך שמירה אוטומטית לקבועה.</p>
       <div className="versions">{list.map(v => <div key={v.id}><div className="version"><span>{v.label ? <span className="lab">{v.label}</span> : <span className="muted">שמירה אוטומטית</span>} <span className="m">#{v.id}</span></span><span className="m num">{new Date(v.saved_at).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span><span className="m num">{v.slides} שק׳ · {fmtTime(v.seconds)}</span>
         <span className="row">{confirmId === v.id ? <><button className="btn sm primary" onClick={() => restore(v.id)}>אישור שחזור</button><button className="btn sm ghost" onClick={() => setConfirmId(null)}>ביטול</button></> : labelId === v.id ? <><input value={rowLabel} onChange={e => setRowLabel(e.target.value)} placeholder="שם" style={{ width: 140, padding: '3px 8px' }} onKeyDown={e => e.key === 'Enter' && applyLabel(v.id)} autoFocus /><button className="btn sm primary" onClick={() => applyLabel(v.id)}>שמור</button><button className="btn sm ghost" onClick={() => setLabelId(null)}>ביטול</button></> : <><button className="btn sm ghost" onClick={() => showDetails(v.id)}>פרטים</button>{!v.label && <button className="btn sm ghost" onClick={() => { setLabelId(v.id); setRowLabel(''); }}><Tag /> תן שם</button>}<button className="btn sm" onClick={() => setConfirmId(v.id)}><RotateCcw /> שחזר</button></>}</span></div>
@@ -76,7 +85,7 @@ function IngestDialog({ onClose }: { onClose: () => void }) {
   const pct = p && p.total ? Math.round(p.done / p.total * 100) : 0;
   const reanalyze = async () => { setAnalyzing(true); try { const r = await api.analyze(); toast(`ניתוח: ${r.analysed} תמונות חדשות · ${r.dupGroups} כפילויות · ${r.burstGroups} צילומי רצף`, 'ok'); void load(); refreshInfo(); } catch (e) { toast('הניתוח נכשל: ' + (e as Error).message, 'error'); } finally { setAnalyzing(false); } };
   return (
-    <Dialog title="קליטת מדיה" onClose={onClose} wide footer={<><span className="muted small grow" style={{ textAlign: 'start' }}>תיקיות: media/photos · media/videos/greetings · media/music. קבצים שכבר עובדו לא מעובדים שוב.</span><button className="btn" disabled={p?.running || analyzing} onClick={reanalyze} title="חישוב מחדש של כפילויות, צילומי רצף ואיכות (ללא עיבוד מחדש של הקבצים)">{analyzing ? 'מנתח…' : 'נתח כפילויות ואיכות'}</button><button className="btn primary" disabled={p?.running} onClick={() => api.startIngest().then(setP)}><Play /> {p?.running ? 'רץ…' : 'סרוק את media/'}</button></>}>
+    <Dialog title="קליטת מדיה" icon={<HardDriveDownload />} onClose={onClose} wide footer={<><span className="muted small grow" style={{ textAlign: 'start' }}>תיקיות: media/photos · media/videos/greetings · media/music. קבצים שכבר עובדו לא מעובדים שוב.</span><button className="btn" disabled={p?.running || analyzing} onClick={reanalyze} title="חישוב מחדש של כפילויות, צילומי רצף ואיכות (ללא עיבוד מחדש של הקבצים)">{analyzing ? 'מנתח…' : 'נתח כפילויות ואיכות'}</button><button className="btn primary" disabled={p?.running} onClick={() => api.startIngest().then(setP)}><Play /> {p?.running ? 'רץ…' : 'סרוק את media/'}</button></>}>
       <div className="row wrap" style={{ marginBottom: 10, gap: 6 }}>
         <span className={`pill ${health ? 'ok' : 'bad'}`}><span className="dot" />{health ? `שרת מחובר · ${health.assets} קבצים בספרייה` : 'אין חיבור לשרת'}</span>
         {health && <span className="pill" title={health.mediaDir}>media: {health.mediaDir}</span>}
@@ -96,7 +105,7 @@ function IngestDialog({ onClose }: { onClose: () => void }) {
 function HelpDialog({ onClose }: { onClose: () => void }) {
   const K = ({ k, d }: { k: string; d: string }) => <tr><td style={{ whiteSpace: 'nowrap', padding: '4px 8px' }}>{k.split(' ').map((x, i) => <kbd key={i} style={{ marginInlineEnd: 4 }}>{x}</kbd>)}</td><td style={{ padding: '4px 8px' }}>{d}</td></tr>;
   return (
-    <Dialog title="עזרה" onClose={onClose} wide footer={<button className="btn primary" onClick={onClose}>סגור</button>}>
+    <Dialog title="עזרה" icon={<HelpCircle />} onClose={onClose} wide footer={<button className="btn" onClick={onClose}>סגור</button>}>
       <div className="field-row" style={{ gap: 20 }}>
         <div><h4 style={{ marginBottom: 8 }}>עורך</h4><table style={{ fontSize: 13 }}><tbody>
           <K k="Enter" d="הוסף את הבחירה מהספרייה לפרק הנבחר" /><K k="Delete" d="מחק שקופיות נבחרות" /><K k="Ctrl D" d="שכפל" /><K k="Ctrl Z / Ctrl Y" d="בטל / חזור" /><K k="Ctrl S" d="שמור עכשיו" /><K k="Ctrl A" d="בחר את כל השקופיות בפרק" /><K k="← →" d="נווט בין שקופיות (Shift לטווח)" /><K k="Esc" d="נקה בחירה" /><K k="?" d="חלון זה" />

@@ -8,6 +8,7 @@ const exe = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Progra
 const base = 'http://127.0.0.1:4000'; const sleep = ms => new Promise(r => setTimeout(r, ms));
 const results = []; let fails = 0; const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); if (!ok) fails++; };
 const browser = await puppeteer.launch({ executablePath: exe, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'] });
+const __kv = (k, v) => fetch('http://127.0.0.1:4000/api/kv/' + k, v === undefined ? undefined : { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }).then(r => r.json()); const __seenPrev = await __kv('guide-seen').then(r => (r.value ? JSON.parse(r.value) : null)); await __kv('guide-seen', { at: 'audit' }); // the first-run welcome card would cover the editor during mouse-driven checks
 const issues = []; const page = async (url, w = 1920, h = 1080) => { const p = await browser.newPage(); await p.setViewport({ width: w, height: h }); p.on('pageerror', e => issues.push(`[${url}] ${e.message}`)); p.on('console', m => { if (m.type() === 'error') issues.push(`[${url}] console: ${m.text()}`); }); p.on('response', r => { if (r.status() >= 400 && !/ingest\/events/.test(r.url())) issues.push(`[${url}] HTTP ${r.status()} ${r.url()}`); }); await p.goto(base + url, { waitUntil: 'networkidle0' }); return p; };
 const click = async (p, text, sel = 'button') => p.evaluate((t, s) => { const b = [...document.querySelectorAll(s)].find(x => x.textContent.trim().includes(t) && !x.disabled); if (b) { b.click(); return true; } return false; }, text, sel);
 const server = () => fetch(base + '/api/show').then(r => r.json());
@@ -81,4 +82,4 @@ await sh.close(); await ed.close();
 { const s = await server(); s.settings.theme = 'midnight-gold'; for (const c of s.chapters) { delete c.theme; for (const sl of c.slides) delete sl.theme; } await fetch(base + '/api/show', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(s) }); }
 for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name}${r.detail ? '  — ' + r.detail : ''}`);
 console.log(`\n${results.length - fails}/${results.length} passed`); console.log('issues:', issues.length ? issues : 'none');
-await browser.close(); process.exit(fails ? 1 : 0);
+await __kv('guide-seen', __seenPrev); await browser.close(); process.exit(fails ? 1 : 0);

@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
-import { Copy, Trash2, Play, ArrowUp, ArrowDown, SortAsc, ImagePlus, X, Star, Plus, ZoomIn, ZoomOut, MoveLeft, MoveRight, MoveUp, MoveDown, Ban, RefreshCcw, Lock, Unlock, Sparkles, Shuffle } from 'lucide-react';
+import { useMemo, type ReactNode } from 'react';
+import { Copy, Trash2, Play, ArrowUp, ArrowDown, SortAsc, ImagePlus, X, Star, Plus, ZoomIn, ZoomOut, MoveLeft, MoveRight, MoveUp, MoveDown, Ban, RefreshCcw, Lock, Unlock, Sparkles, Shuffle, ChevronLeft, Music, Palette, SlidersHorizontal, Clock, SunMedium, Crop, Captions, Layers, FileText, ListChecks, Settings2 } from 'lucide-react';
 import { useShow } from '@/store/show';
 import { useLibrary } from '@/store/library';
 import { useUi } from './ui';
 import { Waveform } from './Waveform';
-import { Checks } from './Checks';
+import { Checks, useChecks } from './Checks';
 import { toast } from '@/store/toast';
 import { similarUnused } from '@shared/autoshow/generate';
 import { usedAssetIds } from '@/show/engine';
@@ -17,6 +17,7 @@ const DEF_LOOK: Look = { filter: 'none', vignette: .5, brightness: 100, contrast
 const DEF_FRAME: Frame = { zoom: 1, rotate: 0, flipH: false, kenBurnsAmount: 1 };
 const DEF_CAP: CaptionStyle = { anim: 'rise', size: 1, position: 'bottom', align: 'right', font: 'display', box: false };
 const LOOK_PRESETS: [string, Partial<Look>][] = [['נקי', { filter: 'none', vignette: .3, brightness: 100, contrast: 100, saturation: 100 }], ['ארכיון', { filter: 'sepia', vignette: .75, contrast: 95, saturation: 100, brightness: 102 }], ['קולנועי', { filter: 'cool', vignette: .85, contrast: 112, saturation: 85, brightness: 98 }], ['שחור־לבן', { filter: 'bw', vignette: .6, contrast: 110, brightness: 100, saturation: 100 }], ['חם', { filter: 'warm', vignette: .5, contrast: 104, saturation: 110, brightness: 103 }], ['דהוי', { filter: 'faded', vignette: .4, contrast: 100, saturation: 100, brightness: 100 }]];
+const FILTER_LABEL: Record<Look['filter'], string> = { none: 'ללא', bw: 'שחור־לבן', sepia: 'ספיה', warm: 'חם', cool: 'קר', faded: 'דהוי', vivid: 'חי' };
 
 const LAYOUT_ICON: Record<CollageLayout, [number, number, number, number][]> = { // x y w h in a 30×20 box
   'hero-right': [[12, 0, 18, 20], [0, 0, 11, 9.5], [0, 10.5, 11, 9.5]], 'hero-left': [[0, 0, 18, 20], [19, 0, 11, 9.5], [19, 10.5, 11, 9.5]], 'two-up': [[0, 0, 14.5, 20], [15.5, 0, 14.5, 20]],
@@ -24,14 +25,22 @@ const LAYOUT_ICON: Record<CollageLayout, [number, number, number, number][]> = {
   filmstrip: [[0, 2, 6.5, 16], [7.5, 2, 6.5, 16], [15, 2, 6.5, 16], [22.5, 2, 6.5, 16]], 'mosaic-6': [[16, 0, 14, 20], [0, 0, 7.5, 9.5], [8, 0, 7.5, 9.5], [0, 10.5, 7.5, 9.5], [8, 10.5, 7.5, 9.5], [16, 0, 0, 0]],
 };
 function LayoutIcon({ l }: { l: CollageLayout }) { return <svg viewBox="0 0 30 20">{LAYOUT_ICON[l].map((r, i) => <rect key={i} x={r[0]} y={r[1]} width={r[2]} height={r[3]} rx="1" />)}</svg>; }
-function LockButton({ locked, onToggle }: { locked?: boolean; onToggle: () => void }) { return <button className={`btn sm ${locked ? 'gold' : ''}`} onClick={onToggle} title={locked ? 'נעול: יצירה אוטומטית לא תחליף' : 'נעל מפני יצירה אוטומטית'}>{locked ? <Lock /> : <Unlock />} {locked ? 'נעול' : 'נעל'}</button>; }
+function LockButton({ locked, onToggle }: { locked?: boolean; onToggle: () => void }) { return <button className={`btn sm ${locked ? 'soft' : ''}`} onClick={onToggle} title={locked ? 'נעול: יצירה אוטומטית לא תחליף' : 'נעל מפני יצירה אוטומטית'}>{locked ? <Lock /> : <Unlock />} {locked ? 'נעול' : 'נעל'}</button>; }
 
 const TRANS = Object.entries(TRANSITION_LABEL) as [TransitionId, string][];
-const KBS: { k: KenBurns; icon: React.ReactNode; l: string }[] = [{ k: 'in', icon: <ZoomIn />, l: 'פנימה' }, { k: 'out', icon: <ZoomOut />, l: 'החוצה' }, { k: 'none', icon: <Ban />, l: 'ללא' }, { k: 'left', icon: <MoveLeft />, l: 'שמאלה' }, { k: 'right', icon: <MoveRight />, l: 'ימינה' }, { k: 'up', icon: <MoveUp />, l: 'למעלה' }, { k: 'down', icon: <MoveDown />, l: 'למטה' }];
+const KBS: { k: KenBurns; icon: ReactNode; l: string }[] = [{ k: 'in', icon: <ZoomIn />, l: 'פנימה' }, { k: 'out', icon: <ZoomOut />, l: 'החוצה' }, { k: 'none', icon: <Ban />, l: 'ללא' }, { k: 'left', icon: <MoveLeft />, l: 'שמאלה' }, { k: 'right', icon: <MoveRight />, l: 'ימינה' }, { k: 'up', icon: <MoveUp />, l: 'למעלה' }, { k: 'down', icon: <MoveDown />, l: 'למטה' }];
+const KB_LABEL = Object.fromEntries(KBS.map(k => [k.k, k.l])) as Record<KenBurns, string>;
+/** 3×3 directional pad (RTL grid: the first cell is on the right): zoom out · up · zoom in / right · none · left / · down · */
+const PAD: (KenBurns | null)[] = ['out', 'up', 'in', 'right', 'none', 'left', null, 'down', null];
+function KbPad({ value, onPick }: { value?: KenBurns; onPick: (k: KenBurns) => void }) {
+  return <div className="kb-grid">{PAD.map((k, i) => k ? <button key={k} aria-pressed={value === k} onClick={() => onPick(k)} title={KB_LABEL[k]}>{KBS.find(x => x.k === k)!.icon}<span>{KB_LABEL[k]}</span></button> : <span key={'sp' + i} className="spacer" />)}</div>;
+}
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) { return <div className="field"><label><span>{label}</span>{hint && <b>{hint}</b>}</label>{children}</div>; }
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) { return <div className="field"><label><span>{label}</span>{hint && <b>{hint}</b>}</label>{children}</div>; }
 function Seg<T extends string>({ value, options, onChange, allowUnset }: { value: T | undefined; options: [T, string][]; onChange: (v: T | undefined) => void; allowUnset?: string }) {
-  return <div className="seg full">{allowUnset && <button aria-pressed={value === undefined} onClick={() => onChange(undefined)}>{allowUnset}</button>}{options.map(([v, l]) => <button key={v} aria-pressed={value === v} onClick={() => onChange(v)}>{l}</button>)}</div>;
+  const n = options.length + (allowUnset ? 1 : 0); const cols = n > 4 ? (n === 5 || n === 6 ? 3 : 4) : n; const rest = n % cols; const lastSpan = n > 4 && rest ? cols - rest + 1 : 1; // the last cell fills its row, so no empty cell remains
+  const last = (i: number) => (lastSpan > 1 && i === n - 1 ? { gridColumn: `span ${lastSpan}` } : undefined);
+  return <div className={`seg full ${n > 4 ? 'grid' : ''}`} style={n > 4 ? { ['--cols' as any]: cols } : undefined}>{allowUnset && <button aria-pressed={value === undefined} onClick={() => onChange(undefined)}>{allowUnset}</button>}{options.map(([v, l], i) => <button key={v} style={last(i + (allowUnset ? 1 : 0))} aria-pressed={value === v} onClick={() => onChange(v)}>{l}</button>)}</div>;
 }
 function Mini({ id, hero, onRemove, onHero, onClick }: { id: string; hero?: boolean; onRemove?: () => void; onHero?: () => void; onClick?: () => void }) {
   const a = useLibrary(s => s.assets[id]);
@@ -39,17 +48,30 @@ function Mini({ id, hero, onRemove, onHero, onClick }: { id: string; hero?: bool
 }
 function useLibPick() { const libSel = useUi(s => s.libSel); const assets = useLibrary(s => s.assets); return { libSel, photos: libSel.filter(id => assets[id]?.type === 'photo'), videos: libSel.filter(id => assets[id]?.type === 'video'), clear: useUi.getState().clearLibSel }; }
 
+/** Collapsible inspector section with an icon and a one-line summary when closed; open state is remembered. */
+function Section({ id, icon, title, summary, children }: { id: string; icon: ReactNode; title: string; summary?: string; children: ReactNode }) {
+  const collapsed = useUi(s => s.collapsed[id]); const toggle = useUi(s => s.toggleSection); const open = !collapsed;
+  return <div className={`sec ${open ? 'open' : ''}`} data-sec={id}><button className="sec-h" aria-expanded={open} onClick={() => toggle(id)}><span className="ic">{icon}</span>{title}{summary && !open && <span className="sum">{summary}</span>}<span className="chev"><ChevronLeft /></span></button>{open && <div className="sec-b">{children}</div>}</div>;
+}
+
 export function Inspector() {
   const show = useShow(s => s.show)!; const sel = useShow(s => s.selection); const selOverlay = useUi(s => s.selOverlay);
+  const tab = useUi(s => s.inspTab); const setTab = useUi(s => s.setInspTab); const inspW = useUi(s => s.inspW); const setInspW = useUi(s => s.setInspW);
+  const checks = useChecks(); const bad = checks.filter(c => c.kind === 'bad').length, warn = checks.filter(c => c.kind === 'warn').length;
   const entry = useMemo(() => { const ids = sel.slideIds; if (ids.length !== 1) return null; for (const c of show.chapters) { const s = c.slides.find(x => x.id === ids[0]); if (s) return { s, c }; } return null; }, [show, sel]);
   const chapter = show.chapters.find(c => c.id === sel.chapterId) ?? show.chapters[0];
   const overlay = entry?.s.overlays?.find(o => o.id === selOverlay);
+  const onResize = (e: React.PointerEvent) => { const x0 = e.clientX, w0 = inspW; const move = (ev: PointerEvent) => setInspW(w0 + (ev.clientX - x0)); const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }; window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); };
   return (
-    <aside className="panel insp">
-      <div className="panel-b" style={{ padding: 0 }}>
-        {sel.slideIds.length > 1 ? <BulkInspector ids={sel.slideIds} /> : entry && overlay ? <OverlayInspector slideId={entry.s.id} o={overlay} /> : entry ? <SlideInspector s={entry.s} c={entry.c} /> : <ChapterInspector c={chapter} />}
+    <aside className="panel insp" data-tour="inspector">
+      <div className="vresizer" onPointerDown={onResize} title="גרור לשינוי רוחב" />
+      <div className="insp-tabs">
+        <button aria-pressed={tab === 'props'} onClick={() => setTab('props')}><Settings2 style={{ width: 14, height: 14 }} /> מאפיינים</button>
+        <button aria-pressed={tab === 'checks'} onClick={() => setTab('checks')} data-tour="checks-tab"><ListChecks style={{ width: 14, height: 14 }} /> בדיקות <span className={`cnt ${bad ? 'bad' : warn ? 'warn' : 'ok'}`}>{bad + warn || '✓'}</span></button>
       </div>
-      <Checks />
+      {tab === 'checks' ? <Checks /> : <div className="panel-b" style={{ padding: 0 }}>
+        {sel.slideIds.length > 1 ? <BulkInspector ids={sel.slideIds} /> : entry && overlay ? <OverlayInspector slideId={entry.s.id} o={overlay} /> : entry ? <SlideInspector s={entry.s} c={entry.c} /> : <ChapterInspector c={chapter} />}
+      </div>}
     </aside>
   );
 }
@@ -65,24 +87,24 @@ function ChapterInspector({ c }: { c: Chapter }) {
       <Field label="שם הפרק"><input className="he" value={c.title} onChange={e => upd(c.id, { title: e.target.value })} /></Field>
       <Field label="כותרת משנה (למציג בלבד)"><input value={c.subtitle ?? ''} onChange={e => upd(c.id, { subtitle: e.target.value })} placeholder="למשל 1946–1964" /></Field>
     </div>
-    <div className="insp-section"><h4>מוזיקה</h4>
+    <Section id="ch-music" icon={<Music />} title="מוזיקה" summary={m ? m.name.replace(/\.[^.]+$/, '') : 'ללא'}>
       <Field label="קטע"><select value={c.musicId ?? ''} onChange={e => upd(c.id, { musicId: e.target.value || undefined, musicStartSec: 0 })}><option value="">ללא מוזיקה (ממשיך מהפרק הקודם)</option>{music.map(a => <option key={a.id} value={a.id}>{a.name.replace(/\.[^.]+$/, '')} · {fmtTime(a.duration ?? 0)}</option>)}</select></Field>
       {m && <>
         <Field label="נקודת התחלה" hint={fmtTime(c.musicStartSec ?? 0)}><Waveform peaks={m.peaks ?? []} duration={m.duration ?? 0} start={c.musicStartSec ?? 0} cover={dur} onStart={(s) => upd(c.id, { musicStartSec: s })} /></Field>
         <Field label="עוצמה" hint={`${Math.round((c.musicLevel ?? show.settings.musicLevel) * 100)}%`}><input type="range" min={0} max={1} step={.05} value={c.musicLevel ?? show.settings.musicLevel} onChange={e => upd(c.id, { musicLevel: +e.target.value })} /></Field>
         {m.duration && m.duration - (c.musicStartSec ?? 0) < dur && <div className="check warn" style={{ cursor: 'default' }}>המוזיקה קצרה מהפרק ב־{fmtTime(dur - (m.duration - (c.musicStartSec ?? 0)))}; תתבצע חזרה עם crossfade.</div>}
       </>}
-      {!music.length && <div className="muted small">אין קטעי מוזיקה בספרייה. הנח קבצים ב־media/music והרץ קליטה.</div>}
-    </div>
-    <div className="insp-section"><h4>ערכת צבעים לפרק</h4>
+      {!music.length && <div className="muted small">אין קטעי מוזיקה בספרייה. הניחו קבצים ב־media/music וסרקו.</div>}
+    </Section>
+    <Section id="ch-theme" icon={<Palette />} title="ערכת צבעים לפרק" summary={c.theme ? themeById(c.theme).name : 'כמו המצגת'}>
       <div className="muted small" style={{ marginBottom: 8 }}>כרגע: {themeById(c.theme ?? show.settings.theme).name}{c.theme ? ' (דריסה)' : ' (כללי)'}</div>
       <ThemeGrid value={c.theme} allowInherit={themeById(show.settings.theme).name} onChange={id => upd(c.id, { theme: id })} />
-    </div>
-    <div className="insp-section"><h4>ברירות מחדל לפרק</h4>
+    </Section>
+    <Section id="ch-defaults" icon={<SlidersHorizontal />} title="ברירות מחדל לפרק" summary={`${c.defaults?.seconds ?? show.settings.defaultSlideSeconds}s · ${TRANSITION_LABEL[c.defaults?.transition ?? show.settings.defaultTransition]}`}>
       <Field label="משך תמונה" hint={c.defaults?.seconds ? `${c.defaults.seconds}s` : `כללי (${show.settings.defaultSlideSeconds}s)`}><input type="range" min={2} max={20} step={.5} value={c.defaults?.seconds ?? show.settings.defaultSlideSeconds} onChange={e => upd(c.id, { defaults: { ...c.defaults, seconds: +e.target.value } })} /></Field>
       <Field label="מעבר"><Seg value={c.defaults?.transition} options={TRANS} allowUnset="כללי" onChange={v => upd(c.id, { defaults: { ...c.defaults, transition: v } })} /></Field>
-      <Field label="תנועת מצלמה"><Seg value={c.defaults?.kenBurns} options={KBS.map(k => [k.k, k.l] as [KenBurns, string])} allowUnset="כללי" onChange={v => upd(c.id, { defaults: { ...c.defaults, kenBurns: v } })} /></Field>
-    </div>
+      <Field label="תנועת מצלמה" hint={c.defaults?.kenBurns ? KB_LABEL[c.defaults.kenBurns] : 'כללי (פנימה)'}><KbPad value={c.defaults?.kenBurns} onPick={k => upd(c.id, { defaults: { ...c.defaults, kenBurns: k } })} /></Field>
+    </Section>
     <div className="insp-section"><h4>פעולות</h4>
       <div className="row wrap">
         <button className="btn sm" onClick={() => { sort(c.id, assets); toast('הפרק סודר לפי שנה'); }}><SortAsc /> סדר לפי שנה</button>
@@ -92,51 +114,51 @@ function ChapterInspector({ c }: { c: Chapter }) {
         <button className="btn sm danger" disabled={show.chapters.length <= 1} onClick={() => { if (c.slides.length && !confirm(`למחוק את הפרק „${c.title}” עם ${c.slides.length} שקופיות?`)) return; remove(c.id); toast('הפרק נמחק'); }}><Trash2 /> מחק פרק</button>
       </div>
     </div>
-    <div className="insp-section"><h4>יצירה אוטומטית</h4>
+    <Section id="ch-auto" icon={<Sparkles />} title="יצירה אוטומטית" summary={c.locked ? 'נעול' : ''}>
       <div className="row wrap">
-        <button className="btn sm gold" onClick={() => openDialog('auto', { fillChapterId: c.id })}><Sparkles /> מלא את הפרק אוטומטית</button>
+        <button className="btn sm soft" onClick={() => openDialog('auto', { fillChapterId: c.id })}><Sparkles /> מלא את הפרק אוטומטית</button>
         <LockButton locked={c.locked} onToggle={() => setChapterLocked(c.id, !c.locked)} />
       </div>
       <div className="muted small" style={{ marginTop: 6 }}>{c.locked ? 'הפרק נעול: יצירה מחדש של המצגת משאירה אותו כמו שהוא.' : 'מילוי אוטומטי מחליף רק שקופיות שנוצרו אוטומטית; שקופיות ידניות ונעולות נשארות.'}</div>
-    </div>
+    </Section>
   </>);
 }
 
 function R({ label, value, min, max, step = 1, fmt, onChange }: { label: string; value: number; min: number; max: number; step?: number; fmt?: (v: number) => string; onChange: (v: number) => void }) { return <Field label={label} hint={fmt ? fmt(value) : String(value)}><input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(+e.target.value)} /></Field>; }
 function LookSection({ s, set }: { s: Slide; set: (p: Record<string, unknown>) => void }) {
   const look = s.look ?? DEF_LOOK; const u = (p: Partial<Look>) => set({ look: { ...look, ...p } });
-  return <div className="insp-section"><h4>מראה</h4>
+  return <Section id="look" icon={<SunMedium />} title="מראה" summary={s.look ? FILTER_LABEL[look.filter] : 'ברירת מחדל'}>
     <div className="preset-row" style={{ marginBottom: 10 }}>{LOOK_PRESETS.map(([l, p]) => <button key={l} className="chip" onClick={() => u(p)}>{l}</button>)}{s.look && <button className="chip" onClick={() => set({ look: undefined })}>איפוס</button>}</div>
     <Field label="פילטר"><Seg value={look.filter} options={[['none', 'ללא'], ['bw', 'שחור־לבן'], ['sepia', 'ספיה'], ['warm', 'חם'], ['cool', 'קר'], ['faded', 'דהוי'], ['vivid', 'חי']]} onChange={v => u({ filter: v as Look['filter'] })} /></Field>
     <div className="field-row"><R label="בהירות" value={look.brightness} min={50} max={150} fmt={v => `${v}%`} onChange={v => u({ brightness: v })} /><R label="ניגודיות" value={look.contrast} min={50} max={150} fmt={v => `${v}%`} onChange={v => u({ contrast: v })} /></div>
     <div className="field-row"><R label="רוויה" value={look.saturation} min={0} max={200} fmt={v => `${v}%`} onChange={v => u({ saturation: v })} /><R label="וינייטה" value={look.vignette} min={0} max={1} step={0.05} fmt={v => `${Math.round(v * 100)}%`} onChange={v => u({ vignette: v })} /></div>
-  </div>;
+  </Section>;
 }
 function FrameSection({ s, set }: { s: Slide; set: (p: Record<string, unknown>) => void }) {
   const f = s.frame ?? DEF_FRAME; const u = (p: Partial<Frame>) => set({ frame: { ...f, ...p } });
-  return <div className="insp-section"><h4>מסגרת וחיתוך</h4>
+  return <Section id="frame" icon={<Crop />} title="מסגרת וחיתוך" summary={s.frame ? `×${f.zoom.toFixed(2)}${f.rotate ? ` · ${f.rotate}°` : ''}${f.flipH ? ' · מראה' : ''}` : 'ברירת מחדל'}>
     <R label="זום (סביב נקודת המוקד)" value={f.zoom} min={1} max={3} step={0.05} fmt={v => `×${v.toFixed(2)}`} onChange={v => u({ zoom: v })} />
     <R label="עוצמת תנועת המצלמה" value={f.kenBurnsAmount} min={0} max={2} step={0.1} fmt={v => v === 0 ? 'ללא' : `×${v.toFixed(1)}`} onChange={v => u({ kenBurnsAmount: v })} />
-    <div className="row wrap"><Seg value={String(f.rotate)} options={[['0', '0°'], ['90', '90°'], ['180', '180°'], ['270', '270°']]} onChange={v => u({ rotate: +(v ?? 0) })} /><label className="chk"><input type="checkbox" checked={f.flipH} onChange={e => u({ flipH: e.target.checked })} /> מראה</label>{s.frame && <button className="btn sm ghost" onClick={() => set({ frame: undefined })}>איפוס</button>}</div>
-  </div>;
+    <div className="row wrap"><Seg value={String(f.rotate)} options={[['0', '0°'], ['90', '90°'], ['180', '180°'], ['270', '270°']]} onChange={v => u({ rotate: +(v ?? 0) })} /><label className="chk"><input type="checkbox" checked={f.flipH} onChange={e => u({ flipH: e.target.checked })} /> הפוך אופקית</label>{s.frame && <button className="btn sm ghost" onClick={() => set({ frame: undefined })}>איפוס</button>}</div>
+  </Section>;
 }
 function CaptionSection({ s, set }: { s: Slide; set: (p: Record<string, unknown>) => void }) {
   const c = s.captionStyle ?? DEF_CAP; const u = (p: Partial<CaptionStyle>) => set({ captionStyle: { ...c, ...p } });
-  return <div className="insp-section"><h4>סגנון הכיתוב</h4>
+  return <Section id="caption" icon={<Captions />} title="סגנון הכיתוב" summary={s.captionStyle ? `${({ rise: 'עלייה', fade: 'עמעום', words: 'מילה־מילה', letters: 'אות־אות', none: 'ללא' })[c.anim]} · ${({ bottom: 'למטה', center: 'מרכז', top: 'למעלה' })[c.position]}` : 'ברירת מחדל'}>
     <Field label="כניסה"><Seg value={c.anim} options={[['rise', 'עלייה'], ['fade', 'עמעום'], ['words', 'מילה־מילה'], ['letters', 'אות־אות'], ['none', 'ללא']]} onChange={v => u({ anim: v as CaptionStyle['anim'] })} /></Field>
     <div className="field-row"><Field label="מיקום"><Seg value={c.position} options={[['bottom', 'למטה'], ['center', 'מרכז'], ['top', 'למעלה']]} onChange={v => u({ position: v as CaptionStyle['position'] })} /></Field><Field label="יישור"><Seg value={c.align} options={[['right', 'ימין'], ['center', 'מרכז'], ['left', 'שמאל']]} onChange={v => u({ align: v as CaptionStyle['align'] })} /></Field></div>
     <div className="field-row"><R label="גודל" value={c.size} min={0.5} max={2.5} step={0.05} fmt={v => `×${v.toFixed(2)}`} onChange={v => u({ size: v })} /><Field label="גופן"><Seg value={c.font} options={[['display', 'פרנק־רוהל'], ['ui', 'היבו']]} onChange={v => u({ font: v as CaptionStyle['font'] })} /></Field></div>
     <div className="row wrap"><label className="chk"><input type="checkbox" checked={c.box} onChange={e => u({ box: e.target.checked })} /> תיבה כהה מאחורי הכיתוב</label>{s.captionStyle && <button className="btn sm ghost" onClick={() => set({ captionStyle: undefined })}>איפוס</button>}</div>
-  </div>;
+  </Section>;
 }
 function LayersSection({ s }: { s: Slide }) {
   const selOverlay = useUi(st => st.selOverlay); const selectOverlay = useUi(st => st.selectOverlay); const upd = useShow(st => st.updateOverlay);
   const list = (s.overlays ?? []).slice().sort((a, b) => b.z - a.z);
   const icon = (k: string) => k === 'text' ? <Type /> : k === 'symbol' ? <Smile /> : k === 'emoji' ? <Smile /> : k === 'shape' ? <Shapes /> : <ImageIcon />;
   const name = (o: NonNullable<Slide['overlays']>[number]) => o.kind === 'text' ? o.text.slice(0, 28) : o.kind === 'symbol' ? o.name : o.kind === 'emoji' ? o.char : o.kind === 'shape' ? ({ rect: 'מלבן', circle: 'עיגול', line: 'פס', frame: 'מסגרת' })[o.shape] : 'תמונה';
-  return <div className="insp-section"><h4>שכבות ({list.length})</h4>
-    {list.length ? <div className="layers">{list.map(o => <div key={o.id} className={`layer-row ${selOverlay === o.id ? 'sel' : ''}`} onClick={() => selectOverlay(o.id)}>{icon(o.kind)}<span className="nm">{name(o)}{o.locked ? ' 🔒' : ''}</span><button className="btn ghost sm icon" title={o.opacity === 0 ? 'הצג' : 'הסתר'} onClick={e => { e.stopPropagation(); upd(s.id, o.id, { opacity: o.opacity === 0 ? 1 : 0 }); }}>{o.opacity === 0 ? <EyeOff /> : <Eye />}</button></div>)}</div> : <div className="muted small">הוסף טקסט, סמל, צורה או תמונה מהכפתורים מעל התצוגה המקדימה.</div>}
-  </div>;
+  return <Section id="layers" icon={<Layers />} title={`שכבות (${list.length})`} summary={list.length ? list.map(name).join(' · ').slice(0, 40) : 'אין'}>
+    {list.length ? <div className="layers">{list.map(o => <div key={o.id} className={`layer-row ${selOverlay === o.id ? 'sel' : ''}`} onClick={() => selectOverlay(o.id)}>{icon(o.kind)}<span className="nm">{name(o)}{o.locked ? ' 🔒' : ''}</span><button className="btn ghost sm icon" title={o.opacity === 0 ? 'הצג' : 'הסתר'} onClick={e => { e.stopPropagation(); upd(s.id, o.id, { opacity: o.opacity === 0 ? 1 : 0 }); }}>{o.opacity === 0 ? <EyeOff /> : <Eye />}</button></div>)}</div> : <div className="muted small">הוסיפו טקסט, סמל, צורה או תמונה מהכפתורים מתחת לתצוגה המקדימה.</div>}
+  </Section>;
 }
 
 function BulkInspector({ ids }: { ids: string[] }) {
@@ -145,9 +167,9 @@ function BulkInspector({ ids }: { ids: string[] }) {
   return (<>
     <div className="insp-title"><span className="ty">{ids.length} שקופיות</span><span className="sub">עריכה קבוצתית</span></div>
     <div className="insp-section">
-      <Field label="משך (לכל הנבחרות)"><div className="row">{[4, 5, 6, 7, 8, 10].map(n => <button key={n} className="chip" onClick={() => { updAll(ids.filter(id => slides.find(s => s.id === id)?.type !== 'video' && slides.find(s => s.id === id)?.type !== 'black'), { seconds: n }); toast(`${n} שניות הוגדרו`); }}>{n}s</button>)}</div></Field>
+      <Field label="משך (לכל הנבחרות)"><div className="row wrap" style={{ gap: 5 }}>{[4, 5, 6, 7, 8, 10].map(n => <button key={n} className="chip" onClick={() => { updAll(ids.filter(id => slides.find(s => s.id === id)?.type !== 'video' && slides.find(s => s.id === id)?.type !== 'black'), { seconds: n }); toast(`${n} שניות הוגדרו`); }}>{n}s</button>)}</div></Field>
       <Field label="מעבר"><Seg value={undefined} options={TRANS} onChange={v => updAll(ids, { transition: v })} /></Field>
-      {photos.length > 0 && <Field label={`תנועת מצלמה (${photos.length} תמונות)`}><div className="kb-grid">{KBS.map(k => <button key={k.k} onClick={() => updAll(photos.map(p => p.id), { kenBurns: k.k })}>{k.icon}<span>{k.l}</span></button>)}</div></Field>}
+      {photos.length > 0 && <Field label={`תנועת מצלמה (${photos.length} תמונות)`}><KbPad onPick={k => updAll(photos.map(p => p.id), { kenBurns: k })} /></Field>}
       <Field label="התקדמות"><Seg value={undefined} options={[['auto', 'אוטומטי'], ['manual', 'לחיצה']]} onChange={v => updAll(ids, { advance: v })} /></Field>
     </div>
     <div className="insp-section"><div className="row wrap"><button className="btn sm" onClick={() => dup(ids)}><Copy /> שכפל</button><LockButton locked={allLocked} onToggle={() => setLocked(ids, !allLocked)} /><button className="btn sm danger" onClick={() => removeSlides(ids)}><Trash2 /> מחק {ids.length}</button></div></div>
@@ -164,7 +186,7 @@ function SlideInspector({ s, c }: { s: Slide; c: Chapter }) {
   const a = 'assetId' in s ? assets[s.assetId] : undefined;
   return (<>
     <div className="insp-title"><span className="ty">{TYPE_LABEL[s.type]}</span><span className="sub">{c.title} · {fmtTime(secs)}</span></div>
-    <div className="insp-section">
+    <Section id="content" icon={<FileText />} title="תוכן">
       {s.type === 'intro' && <><Field label="שם"><input className="he" value={s.title} onChange={e => set({ title: e.target.value })} /></Field><Field label="המספר"><input value={s.number} onChange={e => set({ number: e.target.value })} style={{ width: 90 }} /></Field><Field label="כותרת משנה"><input className="he" value={s.subtitle ?? ''} onChange={e => set({ subtitle: e.target.value })} /></Field></>}
       {s.type === 'chapter' && <><Field label="שורת פתיח קטנה"><input value={s.eyebrow ?? ''} onChange={e => set({ eyebrow: e.target.value })} placeholder="פרק" /></Field><Field label="כותרת"><input className="he" value={s.label} onChange={e => set({ label: e.target.value })} /></Field><Field label="שורת תיאור"><input className="he" value={s.blurb ?? ''} onChange={e => set({ blurb: e.target.value })} /></Field>
         <Field label="תמונת רקע"><div className="row"><div className="asset-strip">{s.heroAssetId ? <Mini id={s.heroAssetId} onRemove={() => set({ heroAssetId: undefined })} /> : <div className="muted small">אין</div>}</div><button className="btn sm" disabled={pick.photos.length !== 1} onClick={() => { set({ heroAssetId: pick.photos[0] }); pick.clear(); }}><ImagePlus /> מהבחירה בספרייה</button></div></Field></>}
@@ -172,7 +194,7 @@ function SlideInspector({ s, c }: { s: Slide; c: Chapter }) {
         <Field label="כיתוב"><textarea className="he" value={s.caption ?? ''} onChange={e => set({ caption: e.target.value })} rows={2} placeholder="מה רואים בתמונה, מי, איפה…" /></Field>
         <div className="field-row"><Field label="שנה" hint={a?.year && a.year !== s.year ? `בקובץ: ${a.year}` : undefined}><input type="number" value={s.year ?? ''} onChange={e => set({ year: e.target.value ? +e.target.value : undefined })} /></Field>
           <Field label="גרעין פילם"><Seg value={s.grain === undefined ? 'auto' : s.grain ? 'on' : 'off'} options={[['auto', 'אוטו׳'], ['on', 'כן'], ['off', 'לא']]} onChange={v => set({ grain: v === 'auto' ? undefined : v === 'on' })} /></Field></div>
-        <Field label="תנועת מצלמה (Ken Burns)"><div className="kb-grid">{KBS.map(k => <button key={k.k} aria-pressed={(s.kenBurns ?? c.defaults?.kenBurns ?? 'in') === k.k} onClick={() => set({ kenBurns: k.k })}>{k.icon}<span>{k.l}</span></button>)}</div></Field>
+        <Field label="תנועת מצלמה (Ken Burns)" hint={KB_LABEL[s.kenBurns ?? c.defaults?.kenBurns ?? 'in']}><KbPad value={s.kenBurns ?? c.defaults?.kenBurns ?? 'in'} onPick={k => set({ kenBurns: k })} /></Field>
         <Field label="נקודת מוקד" hint={`⁦${(s.focal ?? a?.focal ?? [50, 50]).join('% · ')}%⁩`}><div className="row"><span className="muted small grow">לחיצה על התמונה בתצוגה המקדימה</span><button className="btn sm ghost" onClick={() => set({ focal: undefined })}><RefreshCcw /> אוטומטי</button></div></Field>
         <Field label="תמונה"><div className="row wrap"><div className="asset-strip"><Mini id={s.assetId} /></div><button className="btn sm" disabled={pick.photos.length !== 1} onClick={() => { set({ assetId: pick.photos[0], focal: undefined, year: assets[pick.photos[0]]?.year }); pick.clear(); }}><ImagePlus /> החלף מהבחירה</button><button className="btn sm" onClick={() => replaceSimilar(s.assetId)} title="תמונה אחרת מאותה תקופה שעדיין לא במצגת"><Shuffle /> תמונה דומה</button></div></Field>
       </>}
@@ -207,25 +229,25 @@ function SlideInspector({ s, c }: { s: Slide; c: Chapter }) {
       {s.type === 'video-wall' && <><Field label="כותרת"><input className="he" value={s.title ?? ''} onChange={e => set({ title: e.target.value })} /></Field><Field label={`ברכות (${s.assetIds.length}/9)`}><div className="asset-strip">{s.assetIds.map((id, i) => <Mini key={id} id={id} onRemove={() => s.assetIds.length > 2 && set({ assetIds: s.assetIds.filter((_, j) => j !== i) })} />)}</div></Field><button className="btn sm" disabled={!pick.videos.length} onClick={() => { set({ assetIds: Array.from(new Set([...s.assetIds, ...pick.videos])).slice(0, 9) }); pick.clear(); }}><Plus /> הוסף מהבחירה ({pick.videos.length})</button></>}
       {s.type === 'names' && <>
         <Field label="כותרת"><input className="he" value={s.title ?? ''} onChange={e => set({ title: e.target.value })} /></Field>
-        <Field label="אנשים (שם · תמונה)"><div className="list-edit">{s.people.map((p, i) => <div className="item" key={i} style={{ gridTemplateColumns: '1fr 54px 24px' }}><input className="he" value={p.name} onChange={e => upd(s.id, sl => { (sl as any).people[i].name = e.target.value; })} /><div className="mini" onClick={() => { if (pick.photos.length === 1) { upd(s.id, sl => { (sl as any).people[i].assetId = pick.photos[0]; }); pick.clear(); } else toast('בחר תמונה אחת בספרייה ואז לחץ כאן'); }}>{p.assetId && assets[p.assetId] && <img src={assetThumb(assets[p.assetId])} alt="" />}</div><button className="btn ghost sm icon" onClick={() => upd(s.id, sl => { (sl as any).people.splice(i, 1); })}><X /></button></div>)}</div></Field>
+        <Field label="אנשים (שם · תמונה)"><div className="list-edit">{s.people.map((p, i) => <div className="item" key={i} style={{ gridTemplateColumns: '1fr 54px 28px' }}><input className="he" value={p.name} onChange={e => upd(s.id, sl => { (sl as any).people[i].name = e.target.value; })} /><div className="mini" onClick={() => { if (pick.photos.length === 1) { upd(s.id, sl => { (sl as any).people[i].assetId = pick.photos[0]; }); pick.clear(); } else toast('בחר תמונה אחת בספרייה ואז לחץ כאן'); }}>{p.assetId && assets[p.assetId] && <img src={assetThumb(assets[p.assetId])} alt="" />}</div><button className="btn ghost sm icon" onClick={() => upd(s.id, sl => { (sl as any).people.splice(i, 1); })}><X /></button></div>)}</div></Field>
         <div className="row wrap"><button className="btn sm" onClick={() => upd(s.id, sl => { (sl as any).people.push({ name: '' }); })}><Plus /> אדם</button><button className="btn sm" disabled={!pick.photos.length} onClick={() => { upd(s.id, sl => { for (const id of pick.photos) (sl as any).people.push({ name: '', assetId: id }); }); pick.clear(); }}><ImagePlus /> מהבחירה ({pick.photos.length})</button></div>
       </>}
       {s.type === 'finale' && <><Field label="שורת סיום"><input className="he" value={s.text} onChange={e => set({ text: e.target.value })} /></Field><Field label="המספר"><input value={s.number} onChange={e => set({ number: e.target.value })} style={{ width: 90 }} /></Field></>}
       {s.type === 'black' && <Field label="כיתוב קטן (אופציונלי)"><input className="he" value={s.caption ?? ''} onChange={e => set({ caption: e.target.value })} /></Field>}
-    </div>
-    {['photo', 'photo-pair', 'collage', 'chapter', 'video', 'video-wall'].includes(s.type) && <LookSection s={s} set={set} />}
-    {s.type === 'photo' && <FrameSection s={s} set={set} />}
-    {['photo', 'photo-pair', 'collage'].includes(s.type) && <CaptionSection s={s} set={set} />}
-    <LayersSection s={s} />
-    <div className="insp-section"><h4>ערכת צבעים לשקופית</h4>
-      <Field label="ערכה"><select value={s.theme ?? ''} onChange={e => set({ theme: e.target.value || undefined })}><option value="">כמו הפרק / המצגת ({themeById(c.theme ?? show.settings.theme).name})</option>{THEMES_LIST.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field>
-    </div>
-    <div className="insp-section"><h4>תזמון ומעבר</h4>
+    </Section>
+    <Section id="timing" icon={<Clock />} title="תזמון ומעבר" summary={`${hasSeconds ? `${secs}s · ` : ''}${TRANSITION_LABEL[s.transition ?? c.defaults?.transition ?? show.settings.defaultTransition]}${(s.advance ?? 'auto') === 'manual' ? ' · לחיצה' : ''}`}>
       {hasSeconds && <Field label="משך" hint={`${secs}s${!s.seconds ? ' (ברירת מחדל)' : ''}`}><input type="range" min={2} max={30} step={.5} value={secs} onChange={e => set({ seconds: +e.target.value })} /></Field>}
       <Field label="מעבר אל השקופית"><Seg value={s.transition} options={TRANS} allowUnset="פרק" onChange={v => set({ transition: v })} /></Field>
       {s.type !== 'video' && s.type !== 'black' && <Field label="התקדמות"><Seg value={s.advance ?? 'auto'} options={[['auto', 'אוטומטי'], ['manual', 'חכה ללחיצה']]} onChange={v => set({ advance: v })} /></Field>}
       <Field label="הערות למציג"><textarea value={s.notes ?? ''} rows={2} onChange={e => set({ notes: e.target.value })} placeholder="מה לומר כשהשקופית מופיעה…" /></Field>
-    </div>
+    </Section>
+    {['photo', 'photo-pair', 'collage', 'chapter', 'video', 'video-wall'].includes(s.type) && <LookSection s={s} set={set} />}
+    {s.type === 'photo' && <FrameSection s={s} set={set} />}
+    {['photo', 'photo-pair', 'collage'].includes(s.type) && <CaptionSection s={s} set={set} />}
+    <LayersSection s={s} />
+    <Section id="theme" icon={<Palette />} title="ערכת צבעים לשקופית" summary={s.theme ? themeById(s.theme).name : 'כמו הפרק'}>
+      <Field label="ערכה"><select value={s.theme ?? ''} onChange={e => set({ theme: e.target.value || undefined })}><option value="">כמו הפרק / המצגת ({themeById(c.theme ?? show.settings.theme).name})</option>{THEMES_LIST.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field>
+    </Section>
     <div className="insp-section"><div className="row wrap"><button className="btn sm" onClick={() => dup([s.id])}><Copy /> שכפל</button><LockButton locked={s.locked} onToggle={() => setLocked([s.id], !s.locked)} /><button className="btn sm danger" onClick={() => removeSlides([s.id])}><Trash2 /> מחק</button><button className="btn sm primary" onClick={() => window.open(`/show?from=${s.id}`, 'sy80-show')}><Play /> נגן מכאן</button></div>
       {s.auto && <div className="muted small" style={{ marginTop: 6 }}><Sparkles style={{ width: 11, height: 11, verticalAlign: -1 }} /> נוצרה אוטומטית{s.locked ? ' · נעולה' : ' · יצירה מחדש תחליף אותה אלא אם תנעל'}</div>}</div>
   </>);

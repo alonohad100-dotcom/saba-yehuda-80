@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { RotateCcw, Crosshair, Play, Grid3X3, Type, Smile, Shapes, ImagePlus, Lock } from 'lucide-react';
+import { RotateCcw, Crosshair, Play, Grid3X3, Type, Smile, Shapes, ImagePlus, Lock, Film, Pause } from 'lucide-react';
 import { useShow } from '@/store/show';
 import { useLibrary } from '@/store/library';
 import { useUi } from './ui';
@@ -19,10 +19,10 @@ const TEXT_PRESETS: { label: string; make: (s: Slide) => Overlay }[] = [
   { label: 'פסקה', make: () => ({ id: uid('o'), kind: 'text', text: 'כמה מילים על התמונה הזאת…', font: 'display', size: 3, color: 'auto', weight: 300, align: 'right', bg: 'box', shadow: false, accent: false, x: 52, y: 55, w: 42, rotate: 0, opacity: 1, z: 1, anim: { in: 'typewriter', delay: 1, duration: 2, loop: 'none', out: 'none' } }) },
 ];
 const SHAPES: { label: string; make: () => Overlay }[] = [
-  { label: 'מסגרת זהב', make: () => ({ id: uid('o'), kind: 'shape', shape: 'frame', color: '#d4a84b', h: 80, radius: 1, stroke: .35, x: 6, y: 10, w: 88, rotate: 0, opacity: .9, z: 1, anim: { in: 'fade', delay: .4, duration: 1, loop: 'none', out: 'none' } }) },
-  { label: 'פס', make: () => ({ id: uid('o'), kind: 'shape', shape: 'line', color: '#d4a84b', h: 1, radius: 0, stroke: .35, x: 30, y: 50, w: 40, rotate: 0, opacity: 1, z: 1, anim: { in: 'slide-right', delay: .8, duration: .8, loop: 'none', out: 'none' } }) },
+  { label: 'מסגרת', make: () => ({ id: uid('o'), kind: 'shape', shape: 'frame', color: 'auto', h: 80, radius: 1, stroke: .35, x: 6, y: 10, w: 88, rotate: 0, opacity: .9, z: 1, anim: { in: 'fade', delay: .4, duration: 1, loop: 'none', out: 'none' } }) },
+  { label: 'פס', make: () => ({ id: uid('o'), kind: 'shape', shape: 'line', color: 'auto', h: 1, radius: 0, stroke: .35, x: 30, y: 50, w: 40, rotate: 0, opacity: 1, z: 1, anim: { in: 'slide-right', delay: .8, duration: .8, loop: 'none', out: 'none' } }) },
   { label: 'מלבן כהה', make: () => ({ id: uid('o'), kind: 'shape', shape: 'rect', color: 'rgba(13,14,19,.72)', h: 24, radius: 2, stroke: 0, x: 50, y: 64, w: 44, rotate: 0, opacity: 1, z: 1, anim: { in: 'fade', delay: .6, duration: .8, loop: 'none', out: 'none' } }) },
-  { label: 'עיגול', make: () => ({ id: uid('o'), kind: 'shape', shape: 'circle', color: '#d4a84b', h: 18, radius: 50, stroke: 0, x: 44, y: 41, w: 10, rotate: 0, opacity: .85, z: 1, anim: { in: 'zoom', delay: .8, duration: .8, loop: 'pulse', out: 'none' } }) },
+  { label: 'עיגול', make: () => ({ id: uid('o'), kind: 'shape', shape: 'circle', color: 'auto', h: 18, radius: 50, stroke: 0, x: 44, y: 41, w: 10, rotate: 0, opacity: .85, z: 1, anim: { in: 'zoom', delay: .8, duration: .8, loop: 'pulse', out: 'none' } }) },
 ];
 
 export function Preview() {
@@ -37,7 +37,6 @@ export function Preview() {
   const photo = entry?.s.type === 'photo' ? entry.s : null; const focal = photo ? (photo.focal ?? assets[photo.assetId]?.focal ?? [50, 50]) : null;
   const m = show.settings.safeMarginPct; const overlay = entry?.s.overlays?.find(o => o.id === selOverlay) ?? null;
   useEffect(() => { if (selOverlay && !overlay) selectOverlay(null); }, [selOverlay, overlay, selectOverlay]);
-  // measure the selected overlay's box (static frame while an element is selected so handles stay put)
   const measure = () => { const st = stage.current; if (!st || !selOverlay) { setBox(null); return; } const el = st.querySelector<HTMLElement>(`.ov[data-oid="${selOverlay}"]`); if (!el) { setBox(null); return; } const r = el.getBoundingClientRect(), sr = st.getBoundingClientRect(); setBox({ l: r.left - sr.left, t: r.top - sr.top, w: r.width, h: r.height }); };
   useLayoutEffect(() => { const id = requestAnimationFrame(measure); return () => cancelAnimationFrame(id); }); // eslint-disable-line react-hooks/exhaustive-deps
   const liveAnimate = animate && !selOverlay;
@@ -65,41 +64,48 @@ export function Preview() {
   const add = (o: Overlay) => { if (!entry) return; addOverlay(entry.s.id, o); selectOverlay(o.id); setMenu(null); setAnimate(true); };
   const addImage = () => { const id = libSel.find(i => assets[i]?.type === 'photo'); if (!id) return toast('בחר תמונה בספרייה ואז לחץ „+ תמונה”', 'warn'); add({ id: uid('o'), kind: 'image', assetId: id, h: 38, mask: 'rounded', border: true, fit: 'cover', x: 62, y: 10, w: 28, rotate: -3, opacity: 1, z: 1, anim: { in: 'pop', delay: .9, duration: .9, loop: 'none', out: 'none' } }); };
   const canAdd = !!entry && !entry.fallback;
+  const theme = entry ? themeById(resolveTheme(show.settings.theme, entry.c.theme, entry.s.theme)) : themeById(show.settings.theme);
   return (
     <section className="panel preview">
-      <div className="preview-tools">
-        {entry ? <><span className="pill gold">{TYPE_LABEL[entry.s.type]}</span><span className="num">{fmtTime(slideSeconds(entry.s, entry.c, show.settings, assets))}</span><span>מעבר: {TRANSITION_LABEL[slideTransition(entry.s, entry.c, show.settings)]}</span><span className="theme-mini" title="ערכת הצבעים של השקופית"><i style={{ background: themeById(resolveTheme(show.settings.theme, entry.c.theme, entry.s.theme)).accent }} />{themeById(resolveTheme(show.settings.theme, entry.c.theme, entry.s.theme)).name}</span>{entry.fallback && <span className="muted">(השקופית הראשונה בפרק)</span>}</> : <span className="muted">בחר שקופית כדי לראות תצוגה מקדימה</span>}
+      <div className="preview-status">
+        {entry ? <><span className="pill accent">{TYPE_LABEL[entry.s.type]}</span><span className="num"><b>{fmtTime(slideSeconds(entry.s, entry.c, show.settings, assets))}</b></span><span>מעבר: {TRANSITION_LABEL[slideTransition(entry.s, entry.c, show.settings)]}</span><span className="theme-mini" title="ערכת הצבעים של השקופית"><i style={{ background: theme.accent }} />{theme.name}</span>{entry.fallback && <span className="muted">(השקופית הראשונה בפרק · בחרו שקופית כדי לערוך)</span>}</> : <span className="muted">בחרו שקופית בסטוריבורד כדי לראות תצוגה מקדימה</span>}
         <span className="grow" />
-        {canAdd && <div className="row" style={{ gap: 4, position: 'relative' }}>
-          <button className="btn sm gold" onClick={() => setMenu(menu === 'text' ? null : 'text')}><Type /> טקסט</button>
-          <button className="btn sm gold" onClick={() => setMenu(menu === 'symbol' ? null : 'symbol')}><Smile /> סמל</button>
-          <button className="btn sm gold" onClick={() => setMenu(menu === 'shape' ? null : 'shape')}><Shapes /> צורה</button>
-          <button className="btn sm gold" onClick={addImage} title="תמונה קטנה מהבחירה בספרייה"><ImagePlus /> תמונה</button>
-          {menu && <><div style={{ position: 'fixed', inset: 0, zIndex: 39 }} onClick={() => setMenu(null)} /><div className="menu addmenu" style={{ top: '110%', insetInlineStart: 0 }}>
-            {menu === 'text' && TEXT_PRESETS.map(p => <button key={p.label} onClick={() => add(p.make(entry!.s))}><Type />{p.label}</button>)}
-            {menu === 'shape' && SHAPES.map(p => <button key={p.label} onClick={() => add(p.make())}><Shapes />{p.label}</button>)}
-            {menu === 'symbol' && <div style={{ padding: 4 }}>
-              <div className="sym-tabs">{[...SYMBOL_GROUPS, 'אימוג׳י'].map(g => <button key={g} aria-pressed={symTab === g} onClick={() => setSymTab(g)}>{g}</button>)}</div>
-              <div className="sym-grid">{symTab === 'אימוג׳י' ? EMOJI.map(e => <button key={e.char} title={e.label} onClick={() => add({ id: uid('o'), kind: 'emoji', char: e.char, x: 44, y: 36, w: 12, rotate: 0, opacity: 1, z: 1, anim: { in: 'pop', delay: .8, duration: .8, loop: 'none', out: 'none' } })}>{e.char}</button>)
-                : SYMBOLS.filter(s => s.group === symTab).map(s => <button key={s.name} title={s.label} dangerouslySetInnerHTML={{ __html: symbolSvg(s.name, '#f1d38a', 1.6) }} onClick={() => add({ id: uid('o'), kind: 'symbol', name: s.name, color: '#d4a84b', fill: false, stroke: 1.6, x: 44, y: 36, w: 12, rotate: 0, opacity: 1, z: 1, anim: { in: 'zoom', delay: .8, duration: .8, loop: 'none', out: 'none' } })} />)}</div>
-            </div>}
-          </div></>}
-        </div>}
         {photo && !selOverlay && <span className="muted"><Crosshair style={{ width: 13, height: 13, verticalAlign: -2 }} /> לחיצה על התמונה קובעת נקודת מוקד</span>}
-        <button className={`btn sm ${safe ? 'primary' : ''}`} onClick={toggleSafe} title="הצג שולי בטיחות לטלוויזיה"><Grid3X3 /> שוליים</button>
-        <button className="btn sm" onClick={() => { setAnimate(true); selectOverlay(null); setReplay(r => r + 1); }} title="הפעל את האנימציה מההתחלה"><RotateCcw /> נגן שוב</button>
-        <button className="btn sm" onClick={() => setAnimate(a => !a)}>{animate ? 'עצור אנימציה' : 'אנימציה'}</button>
-        {entry && <button className="btn sm primary" onClick={() => window.open(`/show?from=${entry.s.id}`, 'sy80-show')}><Play /> נגן מכאן</button>}
+        {overlay && <span className="muted">שכבה נבחרת: גרירה מזיזה · פינה משנה גודל · ידית עליונה מסובבת · Esc חזרה</span>}
       </div>
       <div className="stage-wrap" ref={wrap}>
-        <div className="stage" ref={stage} data-theme={entry ? resolveTheme(show.settings.theme, entry.c.theme, entry.s.theme) : show.settings.theme} style={{ width: size.w, height: size.h }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-          {entry ? <SlideView slide={entry.s} ctx={ctx} animate={liveAnimate} replayKey={replay} onPick={photo && !selOverlay ? (x, y) => updateSlide(photo.id, { focal: [x, y] } as any) : undefined} /> : <div className="stage-empty">הפרק ריק. גרור תמונות מהספרייה (מימין) אל הסטוריבורד (למטה), או לחץ „+” בפרק.</div>}
+        <div className="stage" ref={stage} data-tour="stage" data-theme={entry ? resolveTheme(show.settings.theme, entry.c.theme, entry.s.theme) : show.settings.theme} style={{ width: size.w, height: size.h }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+          {entry ? <SlideView slide={entry.s} ctx={ctx} animate={liveAnimate} replayKey={replay} onPick={photo && !selOverlay ? (x, y) => updateSlide(photo.id, { focal: [x, y] } as any) : undefined} /> : <div className="stage-empty">הפרק ריק. גררו תמונות מהספרייה (מימין) אל הסטוריבורד (למטה), או לחצו „+” בפרק.</div>}
           {focal && !selOverlay && <div className="focal" style={{ left: `${focal[0]}%`, top: `${focal[1]}%` }} />}
           {safe && <div className="safe" style={{ inset: `${m}%` }} />}
           {guides.v != null && <div className="guide v" style={{ left: `${guides.v}%` }} />}{guides.h != null && <div className="guide h" style={{ top: `${guides.h}%` }} />}
-          {overlay && box && <div className="ov-handles" style={{ left: box.l, top: box.t, width: box.w, height: box.h }}><span className="lab">{overlay.kind === 'text' ? 'טקסט' : overlay.kind === 'symbol' ? 'סמל' : overlay.kind === 'emoji' ? 'אימוג׳י' : overlay.kind === 'shape' ? 'צורה' : 'תמונה'}{overlay.locked ? ' · נעול' : ''} · {Math.round(overlay.x)}%, {Math.round(overlay.y)}%{overlay.rotate ? ` · ${overlay.rotate}°` : ''}</span>{!overlay.locked && <><span className="rotline" /><span className="h rot" title="סובב (נצמד ל־90°)" /><span className="h se" title="שנה גודל" /></>}{overlay.locked && <Lock style={{ position: 'absolute', top: 4, insetInlineStart: 4, width: 12, height: 12, color: 'var(--gold-2)' }} />}</div>}
+          {overlay && box && <div className="ov-handles" style={{ left: box.l, top: box.t, width: box.w, height: box.h }}><span className="lab">{overlay.kind === 'text' ? 'טקסט' : overlay.kind === 'symbol' ? 'סמל' : overlay.kind === 'emoji' ? 'אימוג׳י' : overlay.kind === 'shape' ? 'צורה' : 'תמונה'}{overlay.locked ? ' · נעול' : ''} · {Math.round(overlay.x)}%, {Math.round(overlay.y)}%{overlay.rotate ? ` · ${overlay.rotate}°` : ''}</span>{!overlay.locked && <><span className="rotline" /><span className="h rot" title="סובב (נצמד ל־90°)" /><span className="h se" title="שנה גודל" /></>}{overlay.locked && <Lock style={{ position: 'absolute', top: 4, insetInlineStart: 4, width: 12, height: 12, color: 'var(--accent)' }} />}</div>}
           {photo && !selOverlay && <div className="hint">מוקד <span className="ltr">{focal![0]}% · {focal![1]}%</span></div>}
         </div>
+      </div>
+      <div className="preview-tools">
+        {canAdd ? <div className="btn-group" data-tour="add-tools" style={{ position: 'relative' }}>
+          <button className="btn tip" data-tip="שכבת טקסט (שישה סגנונות)" onClick={() => setMenu(menu === 'text' ? null : 'text')}><Type /> טקסט</button>
+          <button className="btn tip" data-tip="אייקון או אימוג׳י" onClick={() => setMenu(menu === 'symbol' ? null : 'symbol')}><Smile /> סמל</button>
+          <button className="btn tip" data-tip="מסגרת, פס, מלבן, עיגול" onClick={() => setMenu(menu === 'shape' ? null : 'shape')}><Shapes /> צורה</button>
+          <button className="btn tip" data-tip="תמונה קטנה מהבחירה בספרייה" onClick={addImage}><ImagePlus /> תמונה</button>
+          {menu && <><div style={{ position: 'fixed', inset: 0, zIndex: 39 }} onClick={() => setMenu(null)} /><div className="menu addmenu" style={{ bottom: 'calc(100% + 6px)', insetInlineStart: 0 }}>
+            {menu === 'text' && <><div className="menu-h">סגנונות טקסט</div>{TEXT_PRESETS.map(p => <button key={p.label} onClick={() => add(p.make(entry!.s))}><Type />{p.label}</button>)}</>}
+            {menu === 'shape' && <><div className="menu-h">צורות</div>{SHAPES.map(p => <button key={p.label} onClick={() => add(p.make())}><Shapes />{p.label}</button>)}</>}
+            {menu === 'symbol' && <div style={{ padding: 4 }}>
+              <div className="sym-tabs">{[...SYMBOL_GROUPS, 'אימוג׳י'].map(g => <button key={g} aria-pressed={symTab === g} onClick={() => setSymTab(g)}>{g}</button>)}</div>
+              <div className="sym-grid">{symTab === 'אימוג׳י' ? EMOJI.map(e => <button key={e.char} title={e.label} onClick={() => add({ id: uid('o'), kind: 'emoji', char: e.char, x: 44, y: 36, w: 12, rotate: 0, opacity: 1, z: 1, anim: { in: 'pop', delay: .8, duration: .8, loop: 'none', out: 'none' } })}>{e.char}</button>)
+                : SYMBOLS.filter(s => s.group === symTab).map(s => <button key={s.name} title={s.label} dangerouslySetInnerHTML={{ __html: symbolSvg(s.name, 'currentColor', 1.6) }} onClick={() => add({ id: uid('o'), kind: 'symbol', name: s.name, color: 'auto', fill: false, stroke: 1.6, x: 44, y: 36, w: 12, rotate: 0, opacity: 1, z: 1, anim: { in: 'zoom', delay: .8, duration: .8, loop: 'none', out: 'none' } })} />)}</div>
+            </div>}
+          </div></>}
+        </div> : <span className="muted small">בחרו שקופית כדי להוסיף שכבות עיצוב</span>}
+        <span className="grow" />
+        <div className="btn-group" data-tour="preview-tools">
+          <button className="btn tip" aria-pressed={safe} data-tip="שולי הבטיחות של הטלוויזיה" onClick={toggleSafe}><Grid3X3 /><span className="lbl">שוליים</span></button>
+          <button className="btn tip" data-tip="הפעל את האנימציה מההתחלה" onClick={() => { setAnimate(true); selectOverlay(null); setReplay(r => r + 1); }}><RotateCcw /><span className="lbl">נגן שוב</span></button>
+          <button className="btn tip" data-tip={animate ? 'עצור את האנימציה' : 'הפעל אנימציה'} onClick={() => setAnimate(a => !a)}>{animate ? <Pause /> : <Film />}<span className="lbl">{animate ? 'עצור אנימציה' : 'אנימציה'}</span></button>
+        </div>
+        {entry && <button className="btn primary" onClick={() => window.open(`/show?from=${entry.s.id}`, 'sy80-show')}><Play /> נגן מכאן</button>}
       </div>
     </section>
   );

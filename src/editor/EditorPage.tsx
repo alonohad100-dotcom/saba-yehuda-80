@@ -10,13 +10,35 @@ import { Inspector } from './Inspector';
 import { Preview } from './Preview';
 import { Dialogs } from './Dialogs';
 import { toast } from '@/store/toast';
+import { api } from '@/api';
+import { Tour, ensureSelection } from '@/guide/Tour';
+import { Welcome, GUIDE_SEEN_KEY } from '@/guide/Welcome';
+import { useGuideBridge, type GuideCmd } from '@/guide/bridge';
+import { Images, SlidersHorizontal } from 'lucide-react';
 import type { Slide } from '@shared/model';
+
+/** Commands arriving from the guide window (or from `?do=` when the guide opened this editor). */
+function runGuideCmd(c: GuideCmd) {
+  const ui = useUi.getState(); const st = useShow.getState();
+  switch (c.cmd) {
+    case 'dialog': ui.openDialog(c.id); break;
+    case 'tour': ensureSelection(); ui.startTour(c.id ?? 'editor', c.step ?? 0); break;
+    case 'chapter': if (st.show) { st.addChapter(st.selection.chapterId ?? undefined); toast('פרק חדש נוסף', 'ok'); } break;
+    case 'select-first': ensureSelection(); break;
+    case 'show': window.open('/show', 'sy80-show'); break;
+    case 'presenter': window.open('/presenter', 'sy80-presenter'); break;
+    case 'focus': break;
+  }
+}
 
 export function EditorPage() {
   const show = useShow(s => s.show); const load = useShow(s => s.load); const sel = useShow(s => s.selection); const select = useShow(s => s.select);
-  const lib = useLibrary(); const libSel = useUi(s => s.libSel); const storyH = useUi(s => s.storyH);
+  const lib = useLibrary(); const libSel = useUi(s => s.libSel); const storyH = useUi(s => s.storyH); const libW = useUi(s => s.libW); const inspW = useUi(s => s.inspW); const libOpen = useUi(s => s.libOpen); const inspOpen = useUi(s => s.inspOpen); const toggleLib = useUi(s => s.toggleLib); const toggleInsp = useUi(s => s.toggleInsp);
   const [active, setActive] = useState<{ type: 'slide' | 'asset'; id: string } | null>(null);
   useEffect(() => { void load().catch(e => toast('טעינת המצגת נכשלה: ' + e.message, 'error')); void lib.load(); document.title = 'סבא יהודה 80 · עורך'; }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // first run: offer the guide / tour once (remembered on the server), unless the guide itself opened this window with a command
+  useEffect(() => { if (new URLSearchParams(location.search).has('do')) return; void api.kvGet(GUIDE_SEEN_KEY).then(v => { if (!v) useUi.getState().setWelcome(true); }).catch(() => {}); }, []);
+  useGuideBridge(runGuideCmd);
   useEffect(() => { const h = useShow.getState(); return useShow.subscribe((s) => { if (s.save === 'error' && s.saveError && s.saveError !== h.saveError) toast('השמירה נכשלה: ' + s.saveError, 'error'); }); }, []);
 
   // global shortcuts
@@ -77,13 +99,18 @@ export function EditorPage() {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => { setActive(null); useShow.temporal.getState().resume(); }}>
       <div className="app" style={{ ['--story-h' as any]: `${storyH}px` }}>
         <TopBar />
-        <div className="editor">
+        <div className={`editor ${libOpen ? 'lib-open' : ''} ${inspOpen ? 'insp-open' : ''}`} style={{ ['--lib-w' as any]: `${libW}px`, ['--insp-w' as any]: `${inspW}px` }}>
           <Library />
           <Preview />
           <Inspector />
           <Storyboard />
+          {(libOpen || inspOpen) && <div className="drawer-back" onClick={() => (libOpen ? toggleLib() : toggleInsp())} />}
+          <div className="drawer-tabs start"><button className="btn sm" aria-pressed={libOpen} onClick={toggleLib}><Images /> ספרייה</button></div>
+          <div className="drawer-tabs end"><button className="btn sm" aria-pressed={inspOpen} onClick={toggleInsp}><SlidersHorizontal /> מאפיינים</button></div>
         </div>
         <Dialogs />
+        <Welcome />
+        <Tour />
       </div>
       <DragOverlay dropAnimation={null} className="drag-overlay">
         {active?.type === 'slide' && activeSlide ? <SlideCard slide={activeSlide.s} chapter={activeSlide.c} index={0} overlay /> : null}

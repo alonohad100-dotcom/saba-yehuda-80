@@ -22,6 +22,8 @@ export const api = {
   groups: () => j<{ best: string; members: string[] }[]>('/api/groups'),
   kvGet: <T>(key: string) => j<{ key: string; value: string | null }>(`/api/kv/${key}`).then(r => (r.value ? (JSON.parse(r.value) as T) : null)),
   kvSet: (key: string, value: unknown) => j<{ ok: boolean }>(`/api/kv/${key}`, { method: 'PUT', body: JSON.stringify(value) }),
+  /** Copy a file dropped on the library into media/<folder>/ (raw body; the server decides the folder by type when 'auto'). */
+  upload: (file: File, folder: 'auto' | 'photos' | 'videos/greetings' | 'music' = 'auto') => fetch(`/api/upload?folder=${encodeURIComponent(folder)}&name=${encodeURIComponent(file.name)}`, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: file }).then(async r => { if (!r.ok) throw new Error(`${r.status} ${(await r.json().catch(() => ({}))).detail ?? ''}`); return r.json() as Promise<{ ok: boolean; relPath: string }>; }),
 };
 
 export interface IngestProgress { running: boolean; phase: string; done: number; total: number; current?: string; photos: number; videos: number; music: number; warnings: { file: string; message: string }[]; errors: number; startedAt?: number; finishedAt?: number; log: string[]; analyzeDone?: number; analyzeTotal?: number }

@@ -21,7 +21,13 @@
     "audit:editing": "node scripts/audit-editing.mjs .audit/editing",
     "audit:db": "node --import tsx --no-warnings=ExperimentalWarning scripts/audit-db.ts",
     "audit:theme": "node scripts/audit-theme.mjs .audit/theme",
-    "autoshow": "tsx --no-warnings=ExperimentalWarning scripts/autoshow-dryrun.ts"
+    "autoshow": "tsx --no-warnings=ExperimentalWarning scripts/autoshow-dryrun.ts",
+    "audit:guide": "node scripts/audit-guide.mjs .audit/guide",
+    "demo:media": "npm run sample-media && npm run ingest",
+    "demo:show": "node scripts/seed-demo-show.mjs",
+    "demo:clean": "node scripts/clean-data.mjs",
+    "audit:contrast": "node scripts/audit-contrast.mjs",
+    "audit:responsive": "node scripts/audit-responsive.mjs .audit/responsive"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",

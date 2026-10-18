@@ -43,6 +43,20 @@ app.get('/api/groups', async () => {
   for (const a of listAssets()) { if (a.type !== 'photo' || !a.dupGroup) continue; (groups[a.dupGroup] ??= { best: a.dupGroup, members: [] }).members.push(a.id); }
   return Object.values(groups).filter(g => g.members.length > 1);
 });
+// Files dropped on the library: raw body → media/<folder>/<name>; the client runs a scan afterwards.
+app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_req, body, done) => done(null, body));
+const UP_IMG = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.tif', '.tiff', '.bmp', '.gif']), UP_VID = new Set(['.mp4', '.mov', '.m4v', '.webm', '.mkv', '.avi', '.3gp']), UP_MUS = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg', '.opus']);
+app.put<{ Querystring: { folder?: string; name?: string }; Body: Buffer }>('/api/upload', { bodyLimit: 4 * 1024 * 1024 * 1024 }, async (req, reply) => {
+  const name = path.basename(String(req.query.name ?? '')).replace(/[\\/:*?"<>|]/g, '_'); const ext = path.extname(name).toLowerCase();
+  if (!name || name.startsWith('.')) return reply.code(400).send({ error: 'bad name', detail: 'שם קובץ לא תקין' });
+  let folder = String(req.query.folder ?? 'auto');
+  if (folder === 'auto') folder = UP_IMG.has(ext) ? 'photos' : UP_VID.has(ext) ? 'videos/greetings' : UP_MUS.has(ext) ? 'music' : '';
+  if (!['photos', 'videos/greetings', 'music'].includes(folder) || !(UP_IMG.has(ext) || UP_VID.has(ext) || UP_MUS.has(ext))) return reply.code(415).send({ error: 'unsupported', detail: `סוג קובץ לא נתמך: ${ext || name}` });
+  const dir = path.join(MEDIA_DIR, folder); fs.mkdirSync(dir, { recursive: true });
+  let target = path.join(dir, name); for (let i = 2; fs.existsSync(target) && i < 1000; i++) target = path.join(dir, `${path.basename(name, ext)} (${i})${ext}`);
+  fs.writeFileSync(target, req.body ?? Buffer.alloc(0));
+  return { ok: true, relPath: path.relative(MEDIA_DIR, target).replace(/\\/g, '/') };
+});
 app.get<{ Params: { key: string } }>('/api/kv/:key', async (req) => ({ key: req.params.key, value: kvGet(req.params.key) ?? null }));
 app.put<{ Params: { key: string }; Body: unknown }>('/api/kv/:key', async (req) => { kvSet(req.params.key, JSON.stringify(req.body)); return { ok: true }; });
 app.get('/api/ingest/status', async () => progress);

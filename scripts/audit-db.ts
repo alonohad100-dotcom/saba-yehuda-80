@@ -57,9 +57,10 @@ const showFile = JSON.parse(fs.readFileSync(SHOW, 'utf8')); check('data/show.jso
 check('no leftover show.json.tmp (atomic write completed)', !fs.existsSync(SHOW + '.tmp'));
 const backups = fs.readdirSync(BACKUPS).filter(f => f.startsWith('show.')).sort(); check('backups ≤ 200 and newest backup equals show.json', backups.length <= 200 && backups.length > 0 && fs.readFileSync(path.join(BACKUPS, backups[backups.length - 1]), 'utf8') === JSON.stringify(showFile, null, 2));
 check('show.json references only existing assets (photo/video/music ids)', (() => { const ids = new Set(assets.map(a => a.id)); const used = showFile.chapters.flatMap((c: any) => [c.musicId, ...c.slides.flatMap((s: any) => [s.assetId, s.heroAssetId, ...(s.assetIds ?? []), ...(s.milestones?.map((m: any) => m.assetId) ?? []), ...(s.people?.map((p: any) => p.assetId) ?? []), ...(s.overlays?.filter((o: any) => o.kind === 'image').map((o: any) => o.assetId) ?? [])])]).filter(Boolean); return used.every((id: string) => ids.has(id)); })());
-check('overlays/look/frame/captionStyle survive in the stored JSON', (() => { const s = showFile.chapters.flatMap((c: any) => c.slides).find((x: any) => x.overlays?.length); return !!s && !!s.look && !!s.captionStyle && s.overlays.every((o: any) => typeof o.x === 'number' && o.anim); })());
-const kv = db.prepare(`SELECT k FROM kv`).all() as Row[]; check('kv store holds the auto-create options', kv.some(r => r.k === 'autoshow-options'), kv.map(r => r.k).join(','));
 db.close();
+// the user's show exactly as found; restored at the end so the audit leaves no trace in it
+const pristine = fs.readFileSync(SHOW, 'utf8');
+const STYLED = { overlays: [{ id: 'o-audit', kind: 'text', text: 'audit', font: 'display', size: 4, color: 'auto', weight: 400, align: 'center', bg: 'none', shadow: true, accent: false, x: 10, y: 20, w: 80, rotate: 0, opacity: 1, z: 1, anim: { in: 'fade', delay: .5, duration: .8, loop: 'none', out: 'none' } }], look: { filter: 'sepia', vignette: .6, brightness: 100, contrast: 105, saturation: 100 }, frame: { zoom: 1.2, rotate: 0, flipH: false, kenBurnsAmount: 1 }, captionStyle: { anim: 'words', size: 1.1, position: 'top', align: 'center', font: 'ui', box: true } };
 // ---------- 4. migration idempotence ----------
 { const d2 = new DatabaseSync(DB); const before = (d2.prepare(`PRAGMA table_info(assets)`).all() as Row[]).length; const { openDb } = await import('../server/db.ts'); openDb(); const after = (d2.prepare(`PRAGMA table_info(assets)`).all() as Row[]).length; d2.close(); check('openDb() twice is idempotent (no duplicate columns, no error)', before === after); }
 // ---------- 5. live server: persistence, concurrency, restart ----------
@@ -70,12 +71,17 @@ const before = await withServer(async () => {
   const rs = await Promise.all(puts); check('8 concurrent PUT /api/show all succeed', rs.every(r => r.status === 200));
   const after = (await j('/api/show')).body; check('after concurrent saves the show is valid and carries one of the writes', Show.safeParse(after).success && /^concurrent-\d$/.test(after.meta.subtitle), after.meta.subtitle);
   // restore the original subtitle and add a marker overlay to prove persistence across restart
-  const marked = { ...s, meta: { ...s.meta, subtitle: s.meta.subtitle } }; marked.chapters[0].slides[0] = { ...slide, notes: 'restart-marker-' + Date.now() };
+  const marked = { ...s, meta: { ...s.meta, subtitle: s.meta.subtitle } }; marked.chapters[0].slides[0] = { ...slide, ...STYLED, notes: 'restart-marker-' + Date.now() };
   await j('/api/show?label=' + encodeURIComponent('audit-db'), { method: 'PUT', body: JSON.stringify(marked) });
   await j('/api/kv/audit-db', { method: 'PUT', body: JSON.stringify({ t: Date.now() }) });
   const labelled = (await j('/api/show/versions')).body[0]; await j(`/api/show/versions/${labelled.id}/label`, { method: 'POST', body: JSON.stringify({ label: 'audit-db-labelled' }) });
   return { notes: marked.chapters[0].slides[0].notes, versionId: labelled.id, maxId: Math.max(...(await j('/api/show/versions')).body.map((v: any) => v.id)) };
 });
+// on disk, with the server stopped: the styled slide and the kv value written through the API
+{ const stored = JSON.parse(fs.readFileSync(SHOW, 'utf8')).chapters[0].slides[0];
+  check('overlays/look/frame/captionStyle written through the API survive in show.json', stored.overlays?.length === 1 && typeof stored.overlays[0].x === 'number' && !!stored.overlays[0].anim && stored.look?.filter === 'sepia' && stored.frame?.zoom === 1.2 && stored.captionStyle?.anim === 'words');
+  const d3 = new DatabaseSync(DB, { readOnly: true }); const row = d3.prepare(`SELECT v FROM kv WHERE k = 'audit-db'`).get() as { v?: string } | undefined; d3.close();
+  check('kv value written through the API is stored in SQLite', !!row?.v && typeof JSON.parse(row.v).t === 'number'); }
 await withServer(async () => {
   const s = (await j('/api/show')).body; check('show persists across server restart (marker note present)', s.chapters[0].slides[0].notes === before.notes);
   const vs = (await j('/api/show/versions')).body; check('version history persists across restart with the label', vs.some((v: any) => v.id === before.versionId && v.label === 'audit-db-labelled'));
@@ -90,7 +96,10 @@ await withServer(async () => {
   check('corrupt file moved aside as show.json.invalid-*', fs.readdirSync(path.dirname(SHOW)).some(f => f.startsWith('show.json.invalid-')));
 });
 fs.writeFileSync(SHOW, original, 'utf8'); for (const f of fs.readdirSync(path.dirname(SHOW))) if (f.startsWith('show.json.invalid-')) fs.unlinkSync(path.join(path.dirname(SHOW), f));
-await withServer(async () => { const s = (await j('/api/show')).body; check('original show restored after the recovery test', JSON.stringify(s) === JSON.stringify(JSON.parse(original))); });
+await withServer(async () => { const s = (await j('/api/show')).body; check('original show restored after the recovery test', JSON.stringify(s) === JSON.stringify(JSON.parse(original)));
+  // leave the user's show exactly as it was before the audit (saved through the normal path, so it is also the newest version)
+  const r = await j('/api/show?label=' + encodeURIComponent('audit-db: restored'), { method: 'PUT', body: pristine }); const back = (await j('/api/show')).body;
+  check('the show is returned to its state before the audit', r.status === 200 && JSON.stringify(back) === JSON.stringify(JSON.parse(pristine))); });
 
 for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name}${r.detail ? '  — ' + r.detail : ''}`);
 console.log(`\n${results.length - fails}/${results.length} storage checks passed`);

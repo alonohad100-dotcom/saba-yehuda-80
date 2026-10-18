@@ -7,6 +7,7 @@ const exe = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Progra
 const base = 'http://127.0.0.1:4000'; const sleep = ms => new Promise(r => setTimeout(r, ms));
 const results = []; let fails = 0; const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); if (!ok) fails++; };
 const browser = await puppeteer.launch({ executablePath: exe, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'] });
+const __kv = (k, v) => fetch('http://127.0.0.1:4000/api/kv/' + k, v === undefined ? undefined : { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }).then(r => r.json()); const __seenPrev = await __kv('guide-seen').then(r => (r.value ? JSON.parse(r.value) : null)); await __kv('guide-seen', { at: 'audit' }); // the first-run welcome card would cover the editor during mouse-driven checks
 const issues = [];
 const newPage = async (url, w = 1920, h = 1080) => { const p = await browser.newPage(); await p.setViewport({ width: w, height: h }); p.on('pageerror', e => issues.push(`[${url}] pageerror: ${e.message}`)); p.on('console', m => { if (m.type() === 'error') issues.push(`[${url}] console: ${m.text()}`); }); p.on('response', r => { if (r.status() >= 400 && !/ingest\/events/.test(r.url())) issues.push(`[${url}] HTTP ${r.status()} ${r.url()}`); }); await p.goto(base + url, { waitUntil: 'networkidle0' }); return p; };
 const click = async (p, text, sel = 'button') => p.evaluate((t, s) => { const b = [...document.querySelectorAll(s)].find(x => x.textContent.trim().includes(t) && !x.disabled); if (b) { b.click(); return true; } return false; }, text, sel);
@@ -68,8 +69,10 @@ check('chapter inspector shows music select + waveform', await ed.evaluate(() =>
 await ed.evaluate(() => { const i = document.querySelector('.insp input.he'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, 'פרק בדיקה'); i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }); await sleep(1300);
 check('chapter rename persists', (await serverShow()).chapters.some(c => c.title === 'פרק בדיקה') && (await ed.evaluate(() => [...document.querySelectorAll('.ch-head .t')].some(t => t.textContent === 'פרק בדיקה'))));
 await click(ed, 'סדר לפי שנה'); await sleep(300); check('sort chapter by year runs (toast)', /סודר/.test(await ed.evaluate(() => document.querySelector('.toast')?.textContent || '')));
-// checks panel click selects
-const clicked = await ed.evaluate(() => { const c = [...document.querySelectorAll('.check')].find(x => !x.classList.contains('ok')); if (!c) return 'none'; c.click(); return 'clicked'; }); await sleep(300); check('checks panel entry is clickable and selects something', clicked === 'none' || (await ed.evaluate(() => !!document.querySelector('.slide.sel') || !!document.querySelector('.ch-head.sel'))));
+// checks panel (inspector tab) click selects
+await ed.evaluate(() => document.querySelector('[data-tour="checks-tab"]')?.click()); await sleep(250); check('inspector has a checks tab with a count badge', await ed.evaluate(() => !!document.querySelector('.insp-tabs .cnt') && document.querySelectorAll('.insp .checks .check').length > 0));
+const clicked = await ed.evaluate(() => { const c = [...document.querySelectorAll('.insp .checks .check')].find(x => !x.classList.contains('ok')); if (!c) return 'none'; c.click(); return 'clicked'; }); await sleep(300); check('checks panel entry is clickable and selects something', clicked === 'none' || (await ed.evaluate(() => !!document.querySelector('.slide.sel') || !!document.querySelector('.ch-head.sel'))));
+await ed.evaluate(() => document.querySelector('.insp-tabs button')?.click()); await sleep(200);
 // preview tools: safe guides, replay, animation toggle, focal click
 await ed.evaluate((id) => document.querySelector(`.slide[data-id="${id}"]`)?.click(), photoSlide.id); await sleep(200);
 await click(ed, 'שוליים'); await sleep(200); check('safe guides overlay toggles', await ed.evaluate(() => !!document.querySelector('.stage .safe'))); await click(ed, 'שוליים');
@@ -127,7 +130,7 @@ await click(pr, 'הקודם'); await sleep(900); check('presenter „הקודם�
 await click(pr, 'השהה'); await sleep(400); check('presenter pause reflects in the show HUD', /מושהה/.test(await sh.evaluate(() => document.querySelector('.hud')?.textContent))); await click(pr, 'המשך'); await sleep(300);
 await click(pr, 'שחור'); await sleep(700); check('presenter black screen', await sh.evaluate(() => [...document.querySelectorAll('.layer')].every(l => parseFloat(getComputedStyle(l).opacity) < 0.05))); await click(pr, 'שחור'); await sleep(600);
 await click(pr, 'השתק'); await sleep(300); check('presenter mute', await sh.evaluate(() => !!document.querySelector('.hud svg.lucide-volume-x'))); await click(pr, 'בטל השתקה');
-await pr.evaluate(() => [...document.querySelectorAll('.pr-list button')][4]?.click()); await sleep(1000); check('presenter slide list jumps the show', /^5 \//.test(await idx()), await idx());
+await pr.evaluate(() => [...document.querySelectorAll('.pr-strip button')][4]?.click()); await sleep(1000); check('presenter slide list jumps the show', /^5 \//.test(await idx()), await idx());
 await click(pr, 'מההתחלה'); await sleep(1200); check('presenter restart', /^1 \//.test(await idx()));
 check('presenter shows current + next slide renders and notes', await pr.evaluate(() => document.querySelectorAll('.pr-stage .sl').length === 2 && !!document.querySelector('.pr-notes')?.textContent));
 await pr.screenshot({ path: path.join(out, 'presenter.png') });
@@ -135,4 +138,4 @@ await pr.screenshot({ path: path.join(out, 'presenter.png') });
 for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name}${r.detail ? '  — ' + r.detail : ''}`);
 console.log(`\n${results.length - fails}/${results.length} passed`);
 console.log('issues:', issues.length ? issues : 'none');
-await browser.close(); process.exit(fails ? 1 : 0);
+await __kv('guide-seen', __seenPrev); await browser.close(); process.exit(fails ? 1 : 0);

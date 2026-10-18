@@ -1,8 +1,15 @@
 import gsap from 'gsap';
 import { type Slide, type Chapter, type Settings, type Asset, type Overlay, DERIVATIVES, slideSeconds, cssFilter } from '@shared/model';
 import { symbolSvg } from '@shared/symbols';
+gsap.config({ nullTargetWarn: false }); // optional parts (a caption, a hero image) are legitimately absent on some slides
 
-export interface RenderCtx { assets: Record<string, Asset>; settings: Settings; chapter?: Chapter; showPhotoIds?: string[] }
+export type MediaKind = 'display' | 'thumb' | 'poster' | 'posterThumb' | 'video';
+/** `resolve` overrides where an asset's media comes from (the guide renders demo slides from generated images; the show uses the cache derivatives). */
+export interface RenderCtx { assets: Record<string, Asset>; settings: Settings; chapter?: Chapter; showPhotoIds?: string[]; resolve?: (a: Asset, kind: MediaKind) => string }
+export function mediaUrl(ctx: RenderCtx, a: Asset, kind: MediaKind): string {
+  if (ctx.resolve) return ctx.resolve(a, kind);
+  switch (kind) { case 'display': return DERIVATIVES.display(a.id); case 'thumb': return DERIVATIVES.thumb(a.id); case 'poster': return DERIVATIVES.poster(a.id); case 'posterThumb': return DERIVATIVES.posterThumb(a.id); case 'video': return DERIVATIVES.video(a.id); }
+}
 
 const NOISE = `url("data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`)}")`;
 
@@ -12,7 +19,7 @@ const words = (t: string) => esc(t).split(/\s+/).filter(Boolean).map(w => `<span
 
 function img(ctx: RenderCtx, id: string | undefined, cls = '', kind: 'display' | 'thumb' = 'display'): HTMLImageElement {
   const a = id ? ctx.assets[id] : undefined; const i = el('img', cls) as HTMLImageElement; i.alt = ''; i.draggable = false; i.decoding = 'async';
-  if (a) { if (a.type === 'photo') i.src = kind === 'display' ? DERIVATIVES.display(a.id) : DERIVATIVES.thumb(a.id); else if (a.type === 'video') i.src = kind === 'display' ? DERIVATIVES.poster(a.id) : DERIVATIVES.posterThumb(a.id); }
+  if (a) { if (a.type === 'photo') i.src = mediaUrl(ctx, a, kind === 'display' ? 'display' : 'thumb'); else if (a.type === 'video') i.src = mediaUrl(ctx, a, kind === 'display' ? 'poster' : 'posterThumb'); }
   else i.classList.add('missing');
   return i;
 }
@@ -68,7 +75,7 @@ function buildInner(root: HTMLElement, s: Slide, ctx: RenderCtx) {
       ms.forEach((m, i) => { const d = el('div', 'ms ' + (i % 2 ? 'below' : 'above')); d.style.right = `${8 + 84 * ((m.year - y0) / Math.max(1, y1 - y0))}%`; if (m.assetId) d.append(img(ctx, m.assetId, 'chip', 'thumb')); d.append(el('div', 'd'), el('div', 'y', String(m.year)), el('div', 'l', esc(m.label))); tl.append(d); }); root.append(tl, grain()); break; }
     case 'quote': root.innerHTML = `<div class="center"><div class="q"><span class="mark">„</span>${words(s.text)}<span class="q-by">— ${esc(s.by)}</span></div></div>`; root.append(grain()); break;
     case 'video': { const a = ctx.assets[s.assetId]; const bg = img(ctx, s.assetId, 'vbg'); const fr = el('div', 'vframe'); const ratio = a?.width && a?.height ? a.width / a.height : (a?.portrait ? 9 / 16 : 16 / 9); fr.style.aspectRatio = String(ratio); fr.classList.add(ratio < 1 ? 'portrait' : 'landscape');
-      const v = document.createElement('video'); v.className = 'vmedia'; v.playsInline = true; v.preload = 'auto'; v.muted = false; if (a) { v.src = DERIVATIVES.video(a.id); v.poster = DERIVATIVES.poster(a.id); } fr.append(v, el('div', 'vprog', '<i></i>'));
+      const v = document.createElement('video'); v.className = 'vmedia'; v.playsInline = true; v.preload = 'auto'; v.muted = false; if (a) { const src = mediaUrl(ctx, a, 'video'); if (src) v.src = src; v.poster = mediaUrl(ctx, a, 'poster'); } fr.append(v, el('div', 'vprog', '<i></i>'));
       root.append(bg, el('div', 'shade soft'), fr, el('div', 'lower', `<div class="rel">${esc(s.relation)}</div><div class="nm">${esc(s.name || a?.name.replace(/\.[^.]+$/, ''))}</div><div class="bar"></div>`)); break; }
     case 'video-wall': { const g = el('div', `wall n${Math.min(9, s.assetIds.length)}`); s.assetIds.slice(0, 9).forEach(id => { const a = ctx.assets[id]; const t = el('div', 'tile'); t.append(img(ctx, id)); t.append(el('div', 'nm', esc(a?.name.replace(/\.[^.]+$/, '')))); g.append(t); }); root.append(g, el('div', 'wall-title', esc(s.title || 'ברכות'))); break; }
     case 'names': { const n = el('div', 'names'); s.people.forEach(p => { const d = el('div', 'p'); d.append(img(ctx, p.assetId), el('span', '', esc(p.name))); n.append(d); }); root.innerHTML = `<div class="tl"><div class="tt">${esc(s.title || 'המשפחה')}</div></div>`; root.append(n, grain()); break; }

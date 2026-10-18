@@ -153,8 +153,53 @@ Scope: docs/THEMES-PLAN.md. `scripts/audit-theme.mjs` (`npm run audit:theme`), 2
 
 Fix made while auditing: a skipped view transition (hidden tab) rejected its promises as unhandled errors; they are now caught and the theme applied directly. Also an editor-only clip on frame overlays so clicks inside a frame still set the photo's focal point.
 
-## 10. Checklist for Ohad
-- [ ] Drop the real photos, greetings and music into `media/` and run the library scan; review the warnings list.
-- [ ] Build the real show in the editor (the demo show is a template: rename chapters, swap photos, keep the structure).
+## 10. Clean slate and the interactive guide (added 18 Oct 2026, evening)
+
+**Test data removed.** All generated sample material (`media/sample-photos`, the three "(דוגמה)" tracks, the six sample greeting clips), the derived cache, the SQLite catalogue, the backups and the demo show were moved out of the project (reversibly; a fresh `data/show.json` with one intro slide is created on start). `npm run demo:media` / `demo:show` recreate the demo for the audits; `npm run demo:clean` removes it again (into `.trash/<timestamp>/`). The UI, editing and theme suites need the demo; the static, API, DB and guide suites do not.
+
+**Guide.** `/guide` (`src/guide/`): 13 chapters in Hebrew (how it works · library and scanning · chapters and storyboard · the 12 slide types · editing a slide · design tools · colour themes · auto-create · music and audio · presenting and the presenter view · saving, versions and checks · all shortcuts · a day-by-day walkthrough). Demos are real slides built by `buildSlide` / `animateSlide` over generated SVG photographs (`RenderCtx.resolve` lets the renderer take media from somewhere other than the cache); the transition demo reuses the player's `runTransition`, now exported from the engine; the theme demo uses `applyThemeAttr` (View Transitions). Interactive controls: transition picker, overlay-animation playground (entrance / loop / exit / background / text), look sliders and presets, frame sliders, caption style, theme chips, search, chapter navigation with scroll-spy and hash, print stylesheet. A progress checklist reads the real show and library (11 items; "rehearsed" is set by the show when a run reaches the end). "Try it" buttons send commands to an open editor over a BroadcastChannel (`src/guide/bridge.ts`) with an acknowledgement; without an editor, one opens with `?do=`. The editor shows a welcome card once (kv `guide-seen`) offering the guide, a 15-step spotlight tour (`src/guide/Tour.tsx`; targets are `data-tour` attributes on the real controls) or straight to work; a **מדריך** button in the top bar opens the guide at any time.
+
+**Audit.** `scripts/audit-guide.mjs` (`npm run audit:guide`), 29 checks, all passing on an empty library with zero console, page or network errors: 13 chapters and sections; 57 live demo slides; 12 slide types; no media requests (generated photos); transition, animation, look, layout and theme demos react to their controls; navigation and hash; search narrowing and clearing; progress list reads the server; welcome card on first run; a tour of 15 steps, each spotlighting a real control; welcome choice persisted; guide → editor bridge opens dialogs and starts the tour; the `?do=` path; a show run marks the rehearsal and the checklist shows it. Regression after the change: typecheck and build clean, static 151/151, generator tests 5/5. Fixes made while auditing: the guide's scroll-spy no longer fights a programmatic scroll (locked for 1.2 s), and GSAP's "target not found" warnings for legitimately absent slide parts are silenced.
+
+## 11. "Studio" interface (added 18 Oct 2026, night)
+
+Scope: docs/UI-PLAN.md, executed in full. The tool's chrome (editor, dialogs, wizard, guide, welcome, tour, presenter, show start gate and HUD) moved from the show's gold-on-dark palette to a cool, bright design system in `src/styles/chrome.css`; the show's own visuals stay in `global.css` and read only the `--t-*` theme tokens.
+
+- **Tokens and type.** Two chrome themes on `<html data-chrome>`: Studio Light (default) and Studio Dark. The choice is remembered on the server (kv `chrome-theme`) and switched from the moon/sun button in the top bar, Settings → „מראה הממשק", or the presenter. The whole chrome uses one typeface, Rubik 400/500/600/700, embedded. Uppercase and letter-spaced Hebrew headers are gone. Form fields have a 3:1 outline token.
+- **Components.** Buttons and button groups, segmented controls that wrap into an even grid with no empty cell, chips, inputs, sliders with a filled track, cards, glass badges, dialogs with header icons and a secondary close button, empty states, tooltips and toasts.
+- **Editor.**
+  - The top bar is grouped into three parts. Labels become icons below 1500 px, and secondary actions move to an overflow menu below 1280 px.
+  - Library and inspector widths can be dragged (240–440 px) and are remembered. Below 1180 px both become drawers with a backdrop.
+  - Library: filter chips that wrap, a year-source icon on each thumbnail with a legend, an empty state with the three folders, a scan button and a drop zone. Files dropped from the desktop are copied into `media/` through `PUT /api/upload` and scanned.
+  - Preview: a status strip above the stage, and the toolbar below it in two groups (add, view).
+  - Inspector: tabs „מאפיינים" and „בדיקות" (with a problem count), collapsible sections with summaries, and a 3×3 camera-move pad.
+  - Storyboard: colour-coded type tags, a card-size zoom, a hint when the show is empty, and an "add slide" menu that can no longer be clipped.
+- **Presenter.** Large clock and remaining time, a grouped control bar, and a scrolling thumbnail strip grouped by chapter that follows the current slide. This replaces the pill list, which was unusable beyond about 40 slides.
+- **Show start gate and HUD.** Theme-aware, with a two-column key legend and 36 px HUD buttons.
+
+**Audits.** Two new suites, and the existing ones were rerun on the final build with the demo library ingested.
+
+| Suite | Result |
+|---|---|
+| `npm run audit:contrast`: every visible text element on 14 screens (editor and its menus, 5 dialogs, wizard, tour, guide, presenter, welcome), both chrome themes; text ≥ 4.5:1 (large ≥ 3:1), field outlines ≥ 3:1 | 28 / 28 |
+| `npm run audit:responsive`: 1920, 1600, 1366, 1280, 1180 and 1024 px; top bar never overflows or clips, play button on screen, no sideways scroll on editor, presenter and guide, panels ≥ 240 px or working drawers, no inspector control spills out for 6 slide types and a chapter, panel resizing, card zoom, slider fill | 61 / 61 |
+| `audit:ui` (adds the checks-tab check) | 98 / 98 |
+| `audit:editing` | 26 / 26 |
+| `audit:theme` | 25 / 25 |
+| `audit:guide` | 29 / 29 |
+| `audit:api` | 45 / 45 |
+| `audit:static` | 156 / 156 |
+| `npm test` | 5 / 5 |
+| `npm run audit:db` (server stopped) | 36 / 36 |
+
+The storage audit was made self-sufficient. Two of its checks used to read state left behind by earlier sessions: a styled slide in the show, and saved auto-create options. On a fresh database they failed for the wrong reason. The audit now writes a styled slide and a kv value through the API, stops the server, reads both back from `show.json` and SQLite, and at the end returns the user's show to exactly the state it found. It used to leave a marker note on the first slide.
+
+Audit-script changes, not product defects: the UI, editing and theme suites now mark the welcome card as seen while they run, because the card covered the editor during mouse-driven checks; the presenter check uses the new slide strip; the frame preset is now called „מסגרת".
+
+Defects found and fixed during this work are listed in docs/UI-PLAN.md section 7. The demo library used for these audits was removed again afterwards; the app is left empty.
+
+## 12. Checklist for Ohad
+- [ ] Drop the real photos, greetings and music into `media/` (or drag them onto the library) and run the library scan; review the warnings list.
+- [ ] Build the real show in the editor.
 - [ ] Rehearse on the TV with sound; set music level and duck level in Settings to taste.
 - [ ] Record the backup MP4 (docs/RUNBOOK.md).

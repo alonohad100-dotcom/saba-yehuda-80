@@ -8,6 +8,7 @@ const exe = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Progra
 const base = 'http://127.0.0.1:4000'; const sleep = ms => new Promise(r => setTimeout(r, ms));
 const results = []; let fails = 0; const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); if (!ok) fails++; };
 const browser = await puppeteer.launch({ executablePath: exe, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'] });
+const __kv = (k, v) => fetch('http://127.0.0.1:4000/api/kv/' + k, v === undefined ? undefined : { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }).then(r => r.json()); const __seenPrev = await __kv('guide-seen').then(r => (r.value ? JSON.parse(r.value) : null)); await __kv('guide-seen', { at: 'audit' }); // the first-run welcome card would cover the editor during mouse-driven checks
 const issues = []; const p = await browser.newPage(); await p.setViewport({ width: 1920, height: 1080 });
 p.on('pageerror', e => issues.push('pageerror: ' + e.message)); p.on('console', m => { if (m.type() === 'error') issues.push('console: ' + m.text()); }); p.on('response', r => { if (r.status() >= 400 && !/ingest\/events/.test(r.url())) issues.push(`HTTP ${r.status()} ${r.url()}`); });
 const click = async (text, sel = 'button') => p.evaluate((t, s) => { const b = [...document.querySelectorAll(s)].find(x => x.textContent.trim().includes(t) && !x.disabled); if (b) { b.click(); return true; } return false; }, text, sel);
@@ -56,7 +57,7 @@ check('Delete removes the selected overlay, not the slide', s.overlays.length ==
 await click('סמל', '.preview-tools .btn'); await sleep(300); check('symbol picker shows groups and icons', await p.evaluate(() => document.querySelectorAll('.sym-tabs button').length >= 6 && document.querySelectorAll('.sym-grid button svg').length > 5));
 await p.evaluate(() => document.querySelector('.sym-grid button')?.click()); await sleep(1300); s = await serverSlide(sid); check('symbol overlay added and rendered as inline SVG', s.overlays.some(o => o.kind === 'symbol') && await p.evaluate(() => !!document.querySelector('.stage .ov-symbol svg path')));
 await click('סמל', '.preview-tools .btn'); await sleep(200); await click('אימוג׳י', '.sym-tabs button'); await sleep(200); await p.evaluate(() => document.querySelector('.sym-grid button')?.click()); await sleep(1300); s = await serverSlide(sid); check('emoji overlay added', s.overlays.some(o => o.kind === 'emoji'));
-await click('צורה', '.preview-tools .btn'); await sleep(200); await click('מסגרת זהב', '.menu button'); await sleep(1300); s = await serverSlide(sid); check('shape (frame) overlay added', s.overlays.some(o => o.kind === 'shape' && o.shape === 'frame'));
+await click('צורה', '.preview-tools .btn'); await sleep(200); await click('מסגרת', '.menu button'); await sleep(1300); s = await serverSlide(sid); check('shape (frame) overlay added', s.overlays.some(o => o.kind === 'shape' && o.shape === 'frame'));
 await p.evaluate(() => document.querySelector('.asset')?.click()); await sleep(200); await click('תמונה', '.preview-tools .btn'); await sleep(1300); s = await serverSlide(sid); check('image sticker overlay added from library selection', s.overlays.some(o => o.kind === 'image') && await p.evaluate(() => !!document.querySelector('.stage .ov-image img')));
 // --- layers panel ---
 await p.evaluate(() => document.querySelector('.stage')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 0, clientY: 0 }))); await sleep(200);
@@ -88,4 +89,4 @@ await sh.close();
 { const show = await fetch(base + '/api/show').then(r => r.json()); await fetch(base + '/api/show?label=' + encodeURIComponent('audit-editing composed slide'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(show) }); for (const c of show.chapters) for (const s of c.slides) if (s.type === 'photo') { delete s.overlays; delete s.look; delete s.frame; delete s.captionStyle; delete s.transition; } await fetch(base + '/api/show', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(show) }); }
 for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name}${r.detail ? '  — ' + r.detail : ''}`);
 console.log(`\n${results.length - fails}/${results.length} passed`); console.log('issues:', issues.length ? issues : 'none');
-await browser.close(); process.exit(fails ? 1 : 0);
+await __kv('guide-seen', __seenPrev); await browser.close(); process.exit(fails ? 1 : 0);

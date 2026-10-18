@@ -38,16 +38,16 @@ export function AutoShowDialog({ onClose, fillChapterId }: { onClose: () => void
   const stepsLabels = fillChapterId ? ['מקור', 'צורה', 'תצוגה מקדימה', 'מילוי'] : ['מקור', 'צורה', 'תצוגה מקדימה', 'החלה'];
 
   return (<>
-    <div className="wiz-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 59, backdropFilter: 'blur(4px)' }} onClick={onClose} />
+    <div className="wiz-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 59, backdropFilter: 'blur(3px)' }} onClick={onClose} />
     <dialog open className="wiz" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="dlg-h"><Sparkles style={{ color: 'var(--gold)' }} /><h2>{fillChapterId ? `מילוי אוטומטי של „${fillChapter?.title}”` : 'יצירת מצגת אוטומטית'}</h2>
+      <div className="dlg-h"><Sparkles /><h2>{fillChapterId ? `מילוי אוטומטי של „${fillChapter?.title}”` : 'יצירת מצגת אוטומטית'}</h2>
         <div className="wiz-steps">{stepsLabels.map((l, i) => <button key={l} className={step === i + 1 ? 'cur' : step > i + 1 ? 'done' : ''} onClick={() => { if (i + 1 <= step || result) setStep(i + 1); }}><span className="n">{i + 1}</span>{l}</button>)}</div>
         <button className="btn ghost icon x" onClick={onClose}><X /></button></div>
       <div className="dlg-b wiz-b">
         {step === 1 && <div className="wiz-cols">
           <div>
             <h4>תיקיות</h4>
-            <div className="tree"><TreeRow node={tree} depth={0} on={folderOn} toggle={toggleFolder} /></div>
+            <div className="tree">{tree.children.length ? <TreeRow node={tree} depth={0} on={folderOn} toggle={toggleFolder} /> : <div className="empty" style={{ padding: 16 }}><div className="ic"><FolderOpen /></div><b>אין עדיין תמונות בספרייה</b><div>הניחו תמונות ב־media/photos וסרקו („ספרייה” בסרגל העליון). התיקיות יופיעו כאן.</div></div>}</div>
             <div className="row" style={{ marginTop: 8 }}><button className="btn sm ghost" onClick={() => set({ folders: [] })}>כל התיקיות</button><span className="muted small">סימון תיקייה כולל את תתי־התיקיות שלה</span></div>
           </div>
           <div>
@@ -58,7 +58,7 @@ export function AutoShowDialog({ onClose, fillChapterId }: { onClose: () => void
             <label className="chk"><input type="checkbox" checked={o.includeGreetings} onChange={e => set({ includeGreetings: e.target.checked })} /> סרטוני ברכה ({list.filter(a => a.type === 'video' && a.relPath.startsWith('videos/greetings/')).length})</label>
             <label className="chk"><input type="checkbox" checked={o.includeClips} onChange={e => set({ includeClips: e.target.checked })} /> קליפים קצרים מתוך תיקיות התמונות (פחות מ־20 שניות)</label>
             <label className="chk"><input type="checkbox" checked={o.dropLowQuality} onChange={e => set({ dropLowQuality: e.target.checked })} /> דלג על תמונות באיכות נמוכה (מטושטשות / חשוכות)</label>
-            <div className="poolbox"><div className="stat"><div className="v">{pool.photosTotal}</div><div className="l">תמונות במקור</div></div><div className="stat"><div className="v" style={{ color: 'var(--gold-2)' }}>{pool.photos.length}</div><div className="l">אחרי כפילויות ואיכות</div></div><div className="stat"><div className="v">{pool.greetings.length + pool.clips.length}</div><div className="l">סרטונים</div></div><div className="stat"><div className="v">{pool.music.length}</div><div className="l">קטעי מוזיקה</div></div></div>
+            <div className="poolbox"><div className="stat"><div className="v">{pool.photosTotal}</div><div className="l">תמונות במקור</div></div><div className="stat"><div className="v" style={{ color: 'var(--accent-2)' }}>{pool.photos.length}</div><div className="l">אחרי כפילויות ואיכות</div></div><div className="stat"><div className="v">{pool.greetings.length + pool.clips.length}</div><div className="l">סרטונים</div></div><div className="stat"><div className="v">{pool.music.length}</div><div className="l">קטעי מוזיקה</div></div></div>
             <div className="muted small">הוסרו: {pool.dropped.filter(d => d.reason === 'dup').length} כפילויות · {pool.dropped.filter(d => d.reason === 'burst').length} צילומי רצף · {pool.dropped.filter(d => d.reason === 'quality').length} באיכות נמוכה{pool.dropped.some(d => d.reason === 'locked') ? ` · ${pool.dropped.filter(d => d.reason === 'locked').length} בשימוש בשקופיות נעולות/ידניות` : ''}</div>
           </div>
         </div>}

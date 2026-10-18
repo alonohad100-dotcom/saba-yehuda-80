@@ -9,3 +9,4 @@ data/backups/
 .DS_Store
 Thumbs.db
 .audit/
+.trash/

@@ -16,6 +16,17 @@ export function applyThemeAttr(el: HTMLElement, theme: string) {
   el.dataset.theme = theme; done();
 }
 
+/** Animate layer `inL` in and `outL` out with one of the six transitions (shared by the player and the guide's demos). */
+export function runTransition(inL: HTMLElement, outL: HTMLElement, t: string, d: number) {
+  gsap.killTweensOf([inL, outL]); gsap.set([inL, outL], { clearProps: 'transform' });
+  if (t === 'dip') { gsap.fromTo(inL, { opacity: 0 }, { opacity: 1, duration: d * .6, delay: d * .5, ease: 'power1.inOut' }); gsap.to(outL, { opacity: 0, duration: d * .5, ease: 'power1.in' }); }
+  else if (t === 'push') { gsap.fromTo(inL, { xPercent: -100, opacity: 1 }, { xPercent: 0, duration: d, ease: 'power3.inOut' }); gsap.fromTo(outL, { xPercent: 0 }, { xPercent: 100, duration: d, ease: 'power3.inOut', onComplete: () => { gsap.set(outL, { opacity: 0, xPercent: 0 }); } }); }
+  else if (t === 'zoom') { gsap.fromTo(inL, { opacity: 0, scale: 1.15 }, { opacity: 1, scale: 1, duration: d, ease: 'power2.out' }); gsap.to(outL, { opacity: 0, scale: .92, duration: d * .8, ease: 'power2.in', onComplete: () => gsap.set(outL, { scale: 1 }) }); }
+  else if (t === 'wipe') { gsap.fromTo(inL, { opacity: 1, clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0%)', duration: d, ease: 'power2.inOut', onComplete: () => gsap.set(inL, { clearProps: 'clipPath' }) }); gsap.to(outL, { opacity: 0, duration: .1, delay: d }); }
+  else if (t === 'blur') { gsap.fromTo(inL, { opacity: 0, filter: 'blur(24px)' }, { opacity: 1, filter: 'blur(0px)', duration: d * 1.2, ease: 'power2.out', onComplete: () => gsap.set(inL, { clearProps: 'filter' }) }); gsap.to(outL, { opacity: 0, filter: 'blur(24px)', duration: d, ease: 'power2.in', onComplete: () => gsap.set(outL, { clearProps: 'filter' }) }); }
+  else { gsap.fromTo(inL, { opacity: 0 }, { opacity: 1, duration: d, ease: 'power1.inOut' }); gsap.to(outL, { opacity: 0, duration: d, ease: 'power1.inOut' }); }
+}
+
 /* ---------------- audio bus: music A/B crossfade + video, all through one AudioContext ---------------- */
 export class AudioBus {
   ctx: AudioContext | null = null;
@@ -104,13 +115,7 @@ export class Player {
     inL.innerHTML = ''; const ctx = this.ctx(c); const root = buildSlide(s, ctx); inL.append(root); inL.style.zIndex = '2'; outL.style.zIndex = '1';
     this.applyTheme();
     const t = trans ?? slideTransition(s, c, sh.settings); const d = sh.settings.transitionSeconds;
-    gsap.killTweensOf([inL, outL]); gsap.set([inL, outL], { clearProps: 'transform' });
-    if (t === 'dip') { gsap.fromTo(inL, { opacity: 0 }, { opacity: 1, duration: d * .6, delay: d * .5, ease: 'power1.inOut' }); gsap.to(outL, { opacity: 0, duration: d * .5, ease: 'power1.in' }); }
-    else if (t === 'push') { gsap.fromTo(inL, { xPercent: -100, opacity: 1 }, { xPercent: 0, duration: d, ease: 'power3.inOut' }); gsap.fromTo(outL, { xPercent: 0 }, { xPercent: 100, duration: d, ease: 'power3.inOut', onComplete: () => { gsap.set(outL, { opacity: 0, xPercent: 0 }); } }); }
-    else if (t === 'zoom') { gsap.fromTo(inL, { opacity: 0, scale: 1.15 }, { opacity: 1, scale: 1, duration: d, ease: 'power2.out' }); gsap.to(outL, { opacity: 0, scale: .92, duration: d * .8, ease: 'power2.in', onComplete: () => gsap.set(outL, { scale: 1 }) }); }
-    else if (t === 'wipe') { gsap.fromTo(inL, { opacity: 1, clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0%)', duration: d, ease: 'power2.inOut', onComplete: () => gsap.set(inL, { clearProps: 'clipPath' }) }); gsap.to(outL, { opacity: 0, duration: .1, delay: d }); }
-    else if (t === 'blur') { gsap.fromTo(inL, { opacity: 0, filter: 'blur(24px)' }, { opacity: 1, filter: 'blur(0px)', duration: d * 1.2, ease: 'power2.out', onComplete: () => gsap.set(inL, { clearProps: 'filter' }) }); gsap.to(outL, { opacity: 0, filter: 'blur(24px)', duration: d, ease: 'power2.in', onComplete: () => gsap.set(outL, { clearProps: 'filter' }) }); }
-    else { gsap.fromTo(inL, { opacity: 0 }, { opacity: 1, duration: d, ease: 'power1.inOut' }); gsap.to(outL, { opacity: 0, duration: d, ease: 'power1.inOut' }); }
+    runTransition(inL, outL, t, d);
     setTimeout(() => { if (this.layers[this.cur] === inL) outL.innerHTML = ''; }, (d + .3) * 1000); // free the old slide's media
     this.tl = animateSlide(root, s, ctx, { onFinale: () => this.confetti() });
     // music per chapter

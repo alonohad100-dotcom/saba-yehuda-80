@@ -12,6 +12,8 @@ import '@fontsource/heebo/700.css';
 import '@fontsource/suez-one/400.css';
 // theme typefaces (all embedded, Hebrew + Latin subsets)
 import '@fontsource/rubik/400.css';
+import '@fontsource/rubik/500.css';
+import '@fontsource/rubik/600.css';
 import '@fontsource/rubik/700.css';
 import '@fontsource/secular-one/400.css';
 import '@fontsource/david-libre/400.css';
@@ -20,9 +22,13 @@ import '@fontsource/amatic-sc/700.css';
 import '@fontsource/bellefair/400.css';
 import '@fontsource/miriam-libre/400.css';
 import '@fontsource/miriam-libre/700.css';
+import './styles/chrome.css';
 import './styles/global.css';
+import './styles/guide.css';
 import { themeCss } from '@shared/themes';
 import { App } from './App';
+import { initChrome, initRangeFill } from './chrome';
 
+initChrome(); initRangeFill();
 const themeStyle = document.createElement('style'); themeStyle.id = 'themes'; themeStyle.textContent = themeCss(); document.head.append(themeStyle);
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

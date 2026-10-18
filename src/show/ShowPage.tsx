@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Play, Maximize2, Pause, Volume2, VolumeX, SkipBack, SkipForward, Square, Palette } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, Square, Palette, Maximize2 } from 'lucide-react';
 import { themeById, THEMES } from '@shared/themes';
 import { useShow } from '@/store/show';
 import { useLibrary } from '@/store/library';
 import { Player, type PlayerState } from './engine';
 import { fmtTime, slideSeconds } from '@shared/model';
+import { api } from '@/api';
 
 export const CHANNEL = 'sy80';
 
@@ -22,7 +23,8 @@ export function ShowPage() {
     const p = new Player(host.current, () => useShow.getState().show, () => useLibrary.getState().assets);
     player.current = p;
     const bc = new BroadcastChannel(CHANNEL);
-    const off = p.on(s => { setSt({ ...s }); bc.postMessage({ kind: 'state', state: s, elapsed: p.elapsed(), remaining: p.remaining() }); });
+    let rehearsed = false;
+    const off = p.on(s => { setSt({ ...s }); bc.postMessage({ kind: 'state', state: s, elapsed: p.elapsed(), remaining: p.remaining() }); if (s.ended && !rehearsed) { rehearsed = true; void api.kvSet('rehearsed', { at: new Date().toISOString(), slides: s.total }).catch(() => {}); } }); // the guide's checklist marks "rehearsed" when a run reaches the end
     bc.onmessage = (e) => { const m = e.data; if (m?.kind === 'hello') { bc.postMessage({ kind: 'state', state: p.state(), elapsed: p.elapsed(), remaining: p.remaining() }); return; } if (m?.kind !== 'cmd') return; if (m.cmd === 'theme') { p.setLiveTheme(m.id ?? null); return; } if (!p.started) return; ({ next: () => p.next(), prev: () => p.prev(), pause: () => p.pause(), black: () => p.toggleBlack(), mute: () => p.toggleMute(), goto: () => m.id && p.goToId(m.id), restart: () => p.restart() } as Record<string, () => void>)[m.cmd]?.(); };
     p.applyTheme(); setSt(p.state());
     const tick = setInterval(() => { if (p.started) bc.postMessage({ kind: 'tick', elapsed: p.elapsed(), remaining: p.remaining(), idx: p.idx }); }, 1000);
@@ -51,9 +53,9 @@ export function ShowPage() {
   const total = show ? show.chapters.reduce((t, c) => t + c.slides.reduce((u, s) => u + slideSeconds(s, c, show.settings, assets), 0), 0) : 0;
   const slides = show ? show.chapters.reduce((n, c) => n + c.slides.length, 0) : 0;
   const missing = show ? show.chapters.flatMap(c => c.slides).filter(s => ('assetId' in s && !assets[(s as any).assetId])).length : 0;
-  const themeNow = st?.theme ?? show?.settings.theme ?? 'midnight-gold';
+  const themeNow = st?.theme ?? show?.settings.theme ?? 'midnight-gold'; const theme = themeById(themeNow);
   return (
-    <div className="showpage" data-theme={themeNow}>
+    <div className="showpage" data-theme={themeNow} data-chrome="dark">
       <div ref={host} className={`player ${hud || !st?.started ? 'idle' : ''}`} tabIndex={0} onClick={(e) => { const p = player.current; if (p?.started && !(e.target as HTMLElement).closest('button')) p.next(); }} />
       {!st?.started && (
         <div className="startgate">
@@ -63,8 +65,8 @@ export function ShowPage() {
             <button className="btn primary" onClick={start} disabled={!show || !loaded}><Play /> התחל את המצגת</button>
             <div className="meta"><span>{slides} שקופיות</span><span className="num">{fmtTime(total)}</span><span>{Object.keys(assets).length} קבצי מדיה</span></div>
             {missing > 0 && <div className="warn">⚠ {missing} שקופיות מצביעות על קבצים שלא נמצאו בספרייה</div>}
-            <div className="meta"><span><kbd>Space</kbd> / <kbd>→</kbd> הבא</span><span><kbd>←</kbd> הקודם</span><span><kbd>P</kbd> השהה</span><span><kbd>B</kbd> שחור</span><span><kbd>M</kbd> השתק</span><span><kbd>F</kbd> מסך מלא</span><span><kbd>T</kbd> ערכת צבעים</span></div>
-            <div className="meta"><span className="theme-mini"><i style={{ background: themeById(themeNow).accent }} /> ערכה: {themeById(themeNow).name}</span></div>
+            <div className="keys"><span><kbd>Space</kbd><kbd>→</kbd> הבא</span><span><kbd>←</kbd> הקודם</span><span><kbd>P</kbd> השהיה</span><span><kbd>B</kbd> מסך שחור</span><span><kbd>M</kbd> השתקה</span><span><kbd>F</kbd> מסך מלא</span><span><kbd>T</kbd> ערכה הבאה</span><span><kbd>0</kbd> חזרה לערכה</span></div>
+            <div className="meta"><span className="theme-chip"><i style={{ background: theme.accent }} /> ערכה: {theme.name}</span></div>
           </div>
         </div>
       )}
@@ -73,14 +75,15 @@ export function ShowPage() {
           <span className="num">{st.idx + 1} / {st.total}</span>
           <span>{st.chapterTitle}</span>
           <div className="bar"><i style={{ width: st.manual ? '100%' : `${progress}%`, opacity: st.manual ? .3 : 1 }} /></div>
-          <span className="muted">{st.paused ? 'מושהה' : st.manual ? 'ממתין ללחיצה' : fmtTime(st.seconds)}</span>
-          <button className="btn sm icon" onClick={() => player.current?.prev()} title="הקודם"><SkipBack /></button>
-          <button className="btn sm icon" onClick={() => player.current?.pause()} title="השהה">{st.paused ? <Play /> : <Pause />}</button>
-          <button className="btn sm icon" onClick={() => player.current?.next()} title="הבא"><SkipForward /></button>
-          <button className="btn sm icon" onClick={() => player.current?.toggleBlack()} title="מסך שחור"><Square /></button>
-          <button className="btn sm icon" onClick={() => player.current?.toggleMute()} title="השתק מוזיקה">{st.muted ? <VolumeX /> : <Volume2 />}</button>
-          <button className="btn sm icon" onClick={() => player.current?.cycleTheme(1)} title={`ערכת צבעים: ${themeById(st.theme).name} (T לערכה הבאה, 0 לחזרה)`}><Palette /></button>
-          <span className="theme-mini" style={{ fontSize: 11 }}><i style={{ background: themeById(st.theme).accent }} />{themeById(st.theme).name}{st.liveTheme ? ' · זמני' : ''}</span>
+          <span className="state">{st.paused ? 'מושהה' : st.manual ? 'ממתין ללחיצה' : fmtTime(st.seconds)}</span>
+          <button className="btn" onClick={() => player.current?.prev()} title="הקודם"><SkipBack /></button>
+          <button className="btn" onClick={() => player.current?.pause()} title={st.paused ? 'המשך' : 'השהה'}>{st.paused ? <Play /> : <Pause />}</button>
+          <button className="btn" onClick={() => player.current?.next()} title="הבא"><SkipForward /></button>
+          <button className="btn" onClick={() => player.current?.toggleBlack()} title="מסך שחור"><Square /></button>
+          <button className="btn" onClick={() => player.current?.toggleMute()} title="השתק מוזיקה">{st.muted ? <VolumeX /> : <Volume2 />}</button>
+          <button className="btn" onClick={() => player.current?.fullscreen()} title="מסך מלא"><Maximize2 /></button>
+          <button className="btn" onClick={() => player.current?.cycleTheme(1)} title={`ערכת צבעים: ${themeById(st.theme).name} (T לערכה הבאה, 0 לחזרה)`}><Palette /></button>
+          <span className="theme-mini" style={{ fontSize: 11.5 }}><i style={{ background: themeById(st.theme).accent }} />{themeById(st.theme).name}{st.liveTheme ? ' · זמני' : ''}</span>
         </div>
       )}
       <select aria-label="theme" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 1, height: 1 }} value={themeNow} onChange={e => player.current?.setLiveTheme(e.target.value)}>{THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
