@@ -13,5 +13,6 @@ export default defineConfig({
       '/media': { target: 'http://127.0.0.1:4000', changeOrigin: false },
     },
   },
-  build: { outDir: 'dist', sourcemap: false, chunkSizeWarningLimit: 1500 },
+  // bundlerTimings: rolldown's "[PLUGIN_TIMINGS]" note on cold builds (vite:css's share of a 3 s build); informational, not a defect
+  build: { outDir: 'dist', sourcemap: false, chunkSizeWarningLimit: 1500, rolldownOptions: { checks: { bundlerTimings: false } } },
 });

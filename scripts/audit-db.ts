@@ -7,9 +7,8 @@ import path from 'node:path';
 import { spawn, execSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 import { Show } from '../shared/model.ts';
-
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
-const DB = path.join(ROOT, 'data', 'library.db'), SHOW = path.join(ROOT, 'data', 'show.json'), BACKUPS = path.join(ROOT, 'data', 'backups'), CACHE = path.join(ROOT, '.cache'), MEDIA = path.join(ROOT, 'media');
+// The server's own paths, so SY80_HOME=<throwaway copy> audits that copy instead of the real show.
+import { ROOT, DB_FILE as DB, SHOW_FILE as SHOW, BACKUP_DIR as BACKUPS, CACHE_DIR as CACHE, MEDIA_DIR as MEDIA } from '../server/paths.ts';
 const base = 'http://127.0.0.1:4000'; const results: { name: string; ok: boolean; detail?: string }[] = []; let fails = 0;
 const check = (name: string, ok: boolean, detail = '') => { results.push({ name, ok, detail }); if (!ok) fails++; };
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));

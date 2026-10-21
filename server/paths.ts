@@ -3,9 +3,11 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const MEDIA_DIR = path.join(ROOT, 'media');
-export const CACHE_DIR = path.join(ROOT, '.cache');
-export const DATA_DIR = path.join(ROOT, 'data');
+/** SY80_HOME moves media/, .cache/ and data/ elsewhere, so audit-upload can run on a throwaway copy. */
+const HOME = process.env.SY80_HOME ? path.resolve(process.env.SY80_HOME) : ROOT;
+export const MEDIA_DIR = path.join(HOME, 'media');
+export const CACHE_DIR = path.join(HOME, '.cache');
+export const DATA_DIR = path.join(HOME, 'data');
 export const DIST_DIR = path.join(ROOT, 'dist');
 export const SHOW_FILE = path.join(DATA_DIR, 'show.json');
 export const BACKUP_DIR = path.join(DATA_DIR, 'backups');

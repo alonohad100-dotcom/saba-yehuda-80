@@ -15,22 +15,19 @@
     "safeMarginPct": 5,
     "grainOnArchival": true,
     "archivalBeforeYear": 1990,
-    "theme": "midnight-gold"
+    "theme": "pastel"
   },
   "chapters": [
     {
       "id": "ch-open",
       "title": "פתיחה",
-      "slides": [
-        {
-          "id": "sl-intro",
-          "seconds": 8,
-          "type": "intro",
-          "title": "יהודה",
-          "subtitle": "חוגגים 80 · אוקטובר 2026",
-          "number": "80"
-        }
-      ]
+      "theme": "burgundy",
+      "slides": []
+    },
+    {
+      "id": "ch-y8nem1z",
+      "title": "פרק חדש",
+      "slides": []
     }
   ]
 }

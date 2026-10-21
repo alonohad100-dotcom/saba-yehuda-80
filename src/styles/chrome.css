@@ -58,7 +58,7 @@ h1 { font-size: 22px; } h2 { font-size: 20px; } h3 { font-size: 16px; } h4 { fon
 .muted { color: var(--muted); } .small { font-size: 12px; } .num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; } .ltr { direction: ltr; unicode-bidi: isolate; }
 .row { display: flex; align-items: center; gap: 8px; } .col { display: flex; flex-direction: column; gap: 8px; } .grow { flex: 1; min-width: 0; } .wrap { flex-wrap: wrap; }
 kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--line-2); border-bottom-width: 2px; color: var(--fg-2); }
-code { font-family: var(--mono); font-size: 12.5px; }
+code { font-family: var(--mono); font-size: 12.5px; unicode-bidi: plaintext; } /* paths like media/ keep their slash on the right side in Hebrew text */
 a { color: var(--accent-2); }
 
 /* ---------- buttons ---------- */
@@ -154,6 +154,26 @@ a { color: var(--accent-2); }
 .empty b { color: var(--fg); font-size: 15px; font-weight: 600; }
 .empty .paths { display: flex; flex-direction: column; gap: 6px; width: 100%; } .empty .path { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; border: 1px solid var(--line-2); border-radius: var(--r-sm); background: var(--panel-2); text-align: start; } .empty .path span { font-size: 12px; color: var(--fg-3); } .empty .path code { font-size: 12px; direction: ltr; text-align: left; color: var(--accent-2); }
 .dropzone { border: 2px dashed var(--line-3); border-radius: var(--r); padding: 14px; width: 100%; color: var(--muted); font-size: 12.5px; transition: all .15s; } .dropzone.over, .lib.over .dropzone { border-color: var(--accent); background: var(--accent-dim); color: var(--accent-2); }
+/* Adding media: header menu, empty-state buttons, the manual Explorer route, the window-wide drop target and the copy progress card */
+.lib-add { position: relative; } .lib-add > .btn svg:last-child { width: 13px; height: 13px; margin-inline-start: -2px; }
+.lib-add .menu { top: calc(100% + 6px); inset-inline-end: 0; min-width: 260px; }
+.lib-add .menu .menu-h { font-weight: 500; padding-top: 4px; }
+.lib-tools[hidden] { display: none; }
+.lib-empty-state { padding: 18px 14px; gap: 12px; } .lib-empty-state > b { display: flex; align-items: center; gap: 8px; color: var(--fg); font-size: 14px; } .lib-empty-state > b svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.lib-empty-state .small { font-size: 12px; line-height: 1.55; color: var(--fg-3); }
+.empty .add-ways { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; } .empty .add-ways .btn { flex: 1 1 140px; justify-content: center; }
+.empty .manual-way { width: 100%; text-align: start; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); }
+.empty .manual-way summary { cursor: pointer; padding: 8px 12px; font-size: 12.5px; font-weight: 500; color: var(--fg-2); } .empty .manual-way summary:hover { color: var(--accent-2); }
+.empty .manual-way[open] { padding-bottom: 10px; } .empty .manual-way .paths, .empty .manual-way .add-ways { padding: 0 10px; } .empty .manual-way .add-ways { margin-top: 8px; }
+.drop-overlay { position: fixed; inset: 10px; z-index: 90; pointer-events: none; border: 3px dashed var(--accent); border-radius: 16px; background: color-mix(in srgb, var(--bg) 78%, transparent); display: grid; place-items: center; animation: toastin .15s ease-out; }
+.drop-overlay > div { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 26px 34px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line-2); box-shadow: var(--shadow-lg); color: var(--fg); text-align: center; }
+.drop-overlay svg { width: 40px; height: 40px; color: var(--accent); } .drop-overlay b { font-size: 18px; font-weight: 600; } .drop-overlay span { font-size: 13px; color: var(--fg-3); }
+.upload-card { position: fixed; bottom: 18px; inset-inline-end: 18px; z-index: 95; width: min(360px, calc(100vw - 32px)); padding: 12px 14px; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line-2); border-inline-start: 4px solid var(--accent); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: var(--fg-2); }
+.upload-card .uc-h { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--fg); } .upload-card .uc-h svg { width: 16px; height: 16px; color: var(--accent); } .upload-card .uc-h .num { margin-inline-start: auto; font-weight: 500; color: var(--fg-3); }
+.upload-card .uc-bar { height: 6px; border-radius: 99px; background: var(--panel-3); overflow: hidden; } .upload-card .uc-bar i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .2s; }
+.upload-card .uc-f { display: flex; gap: 10px; color: var(--muted); } .upload-card .uc-cur { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-card .uc-bad { color: var(--bad); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .drop-overlay { animation: none; } .upload-card .uc-bar i { transition: none; } }
 
 /* ---------- preview ---------- */
 .preview { display: flex; flex-direction: column; background: var(--bg-2); position: relative; }

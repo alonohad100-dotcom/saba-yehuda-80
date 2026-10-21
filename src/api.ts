@@ -22,8 +22,18 @@ export const api = {
   groups: () => j<{ best: string; members: string[] }[]>('/api/groups'),
   kvGet: <T>(key: string) => j<{ key: string; value: string | null }>(`/api/kv/${key}`).then(r => (r.value ? (JSON.parse(r.value) as T) : null)),
   kvSet: (key: string, value: unknown) => j<{ ok: boolean }>(`/api/kv/${key}`, { method: 'PUT', body: JSON.stringify(value) }),
-  /** Copy a file dropped on the library into media/<folder>/ (raw body; the server decides the folder by type when 'auto'). */
-  upload: (file: File, folder: 'auto' | 'photos' | 'videos/greetings' | 'music' = 'auto') => fetch(`/api/upload?folder=${encodeURIComponent(folder)}&name=${encodeURIComponent(file.name)}`, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: file }).then(async r => { if (!r.ok) throw new Error(`${r.status} ${(await r.json().catch(() => ({}))).detail ?? ''}`); return r.json() as Promise<{ ok: boolean; relPath: string }>; }),
+  /** Copy a file into media/ (the server picks photos / videos/greetings / music by type). `sub` keeps the folder it came from, under media/photos.
+   *  XHR rather than fetch, for upload progress on large videos. */
+  upload: (file: File, sub = '', onProgress?: (sent: number) => void) => new Promise<{ ok: boolean; relPath: string; skipped: boolean }>((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open('PUT', `/api/upload?folder=auto&name=${encodeURIComponent(file.name)}&sub=${encodeURIComponent(sub)}`);
+    x.setRequestHeader('Content-Type', 'application/octet-stream');
+    if (onProgress) x.upload.onprogress = (e) => onProgress(e.loaded);
+    x.onload = () => { let r: { detail?: string } = {}; try { r = JSON.parse(x.responseText); } catch { /* not JSON */ } if (x.status >= 200 && x.status < 300) resolve(r as never); else reject(new Error(r.detail || `${x.status}`)); };
+    x.onerror = () => reject(new Error('ההעתקה נכשלה: השרת לא זמין או שהקובץ לא נקרא'));
+    x.send(file);
+  }),
+  openFolder: (folder: '' | 'photos' | 'videos/greetings' | 'music' = '') => j<{ ok: boolean; dir: string }>('/api/open-folder', { method: 'POST', body: JSON.stringify({ folder }) }),
 };
 
 export interface IngestProgress { running: boolean; phase: string; done: number; total: number; current?: string; photos: number; videos: number; music: number; warnings: { file: string; message: string }[]; errors: number; startedAt?: number; finishedAt?: number; log: string[]; analyzeDone?: number; analyzeTotal?: number }
