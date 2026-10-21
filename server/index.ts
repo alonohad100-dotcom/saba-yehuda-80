@@ -12,7 +12,8 @@ import { openDb, listAssets, patchAsset, listShowVersions, getShowVersion, label
 import { loadShow, saveShow } from './show-store.ts';
 import { runIngest, runAnalysis, progress, events } from './ingest/index.ts';
 import { facesAvailable } from './ingest/faces.ts';
-import { exportEstimate, runExport, exportProgress, revealExport } from './export.ts';
+import { exportEstimate, runExport, exportProgress, revealExport, revealPath } from './export.ts';
+import { videoEstimate, runVideoExport, videoProgress, cancelVideoExport, type VideoQuality } from './video-export.ts';
 
 ensureDirs(); openDb();
 const PORT = Number(process.env.PORT || 4000);
@@ -110,6 +111,22 @@ app.post<{ Body: { dest?: string; zip?: boolean } }>('/api/export', async (req, 
   if (exportProgress.phase === 'idle') return reply.code(400).send({ error: 'export', detail: 'הייצוא לא התחיל' });
   return exportProgress;
 });
+// video export: the show recorded in a hidden Chrome and encoded as one MP4 (phones, TVs, WhatsApp)
+app.get('/api/export/video/estimate', async () => videoEstimate());
+app.get('/api/export/video/status', async () => videoProgress);
+app.post<{ Body: { dest?: string; quality?: VideoQuality } }>('/api/export/video', async (req, reply) => {
+  if (videoProgress.running) return reply.code(409).send({ error: 'busy', detail: 'ייצוא וידאו כבר רץ' });
+  if (exportProgress.running) return reply.code(409).send({ error: 'busy', detail: 'ייצוא חבילה רץ כרגע' });
+  if (!PROD) return reply.code(400).send({ error: 'dev', detail: 'ייצוא וידאו זמין כשהאפליקציה רצה במצב רגיל (npm run start)' });
+  const quality: VideoQuality = req.body?.quality === '1080' ? '1080' : '720';
+  let failed: string | null = null;
+  const run = runVideoExport({ dest: req.body?.dest, quality, base: `http://127.0.0.1:${PORT}` }); run.catch(e => { failed = (e as Error).message; });
+  await new Promise(r => setTimeout(r, 80));
+  if (failed) return reply.code(400).send({ error: 'export', detail: failed });
+  return videoProgress;
+});
+app.post('/api/export/video/cancel', async () => ({ ok: cancelVideoExport() }));
+app.post('/api/export/video/reveal', async (req, reply) => (videoProgress.file && revealPath(videoProgress.file) ? { ok: true } : reply.code(404).send({ error: 'not found', detail: 'אין סרטון להצגה' })));
 app.post('/api/export/reveal', async (req, reply) => (revealExport() ? { ok: true } : reply.code(404).send({ error: 'not found', detail: 'אין ייצוא להצגה' })));
 
 if (PROD && fs.existsSync(DIST_DIR)) {

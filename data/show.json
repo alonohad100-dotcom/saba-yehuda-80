@@ -19,7 +19,7 @@
     "showYears": false,
     "photoFit": "contain",
     "archivalBeforeYear": 1990,
-    "theme": "midnight-gold"
+    "theme": "emerald-copper"
   },
   "chapters": [
     {
@@ -268,8 +268,8 @@
           "musicId": "c469985aef4612464778",
           "musicStartSec": 0,
           "type": "quote",
-          "text": "בית זה חיך של ילד, אהבת אמא, שמחה של אבא, הביחד של המשפחה\n(מנחם בגין)",
-          "by": ""
+          "text": "בית זה חיוך של ילד, אהבת אמא, שמחה של אבא, וביחד של המשפחה\n",
+          "by": "מנחם בגין"
         },
         {
           "id": "s-iot3hyq",
@@ -1251,6 +1251,21 @@
           "assetId": "41b3c49d46342c1e7058",
           "name": "גיא ניצן והטעויות",
           "relation": ""
+        },
+        {
+          "id": "s-dj2wzkf",
+          "transition": "blur",
+          "theme": "emerald-copper",
+          "texts": {
+            "caption": {
+              "size": 5,
+              "bold": true
+            }
+          },
+          "musicId": "e2a10d0131d3357734f7",
+          "musicStartSec": 0,
+          "type": "black",
+          "caption": "עד שנה הבאה..."
         }
       ]
     }

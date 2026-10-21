@@ -8,6 +8,9 @@ import { fmtTime, slideSeconds } from '@shared/model';
 import { api } from '@/api';
 
 export const CHANNEL = 'sy80';
+/** /show/?render=1 is driven by the video export: no controls, no start screen, nothing waits for a click, and the state is reported to the recorder. */
+const RENDER = new URLSearchParams(location.search).has('render');
+type RenderHooks = { __sy80state?: (s: { idx: number; total: number; ended: boolean; started: boolean }) => void; __sy80start?: () => boolean };
 
 export function ShowPage() {
   const show = useShow(s => s.show); const load = useShow(s => s.load);
@@ -20,13 +23,14 @@ export function ShowPage() {
   // create the player once data is present
   useEffect(() => {
     if (!show || !loaded || !host.current || player.current) return;
-    const p = new Player(host.current, () => useShow.getState().show, () => useLibrary.getState().assets, { fullscreenEl: host.current.parentElement ?? undefined });
+    const p = new Player(host.current, () => useShow.getState().show, () => useLibrary.getState().assets, { fullscreenEl: host.current.parentElement ?? undefined, render: RENDER });
     player.current = p;
     const bc = new BroadcastChannel(CHANNEL);
     let rehearsed = false;
-    const off = p.on(s => { setSt({ ...s }); bc.postMessage({ kind: 'state', state: s, elapsed: p.elapsed(), remaining: p.remaining() }); if (s.ended && !rehearsed) { rehearsed = true; void api.kvSet('rehearsed', { at: new Date().toISOString(), slides: s.total }).catch(() => {}); } }); // the guide's checklist marks "rehearsed" when a run reaches the end
+    const off = p.on(s => { setSt({ ...s }); if (RENDER) (window as RenderHooks).__sy80state?.({ idx: s.idx, total: s.total, ended: s.ended, started: s.started }); bc.postMessage({ kind: 'state', state: s, elapsed: p.elapsed(), remaining: p.remaining() }); if (s.ended && !rehearsed && !RENDER) { rehearsed = true; void api.kvSet('rehearsed', { at: new Date().toISOString(), slides: s.total }).catch(() => {}); } }); // the guide's checklist marks "rehearsed" when a run reaches the end
     bc.onmessage = (e) => { const m = e.data; if (m?.kind === 'hello') { bc.postMessage({ kind: 'state', state: p.state(), elapsed: p.elapsed(), remaining: p.remaining() }); return; } if (m?.kind !== 'cmd') return; if (m.cmd === 'theme') { p.setLiveTheme(m.id ?? null); return; } if (!p.started) return; ({ next: () => p.next(), prev: () => p.prev(), pause: () => p.pause(), black: () => p.toggleBlack(), mute: () => p.toggleMute(), goto: () => m.id && p.goToId(m.id), restart: () => p.restart() } as Record<string, () => void>)[m.cmd]?.(); };
     p.applyTheme(); setSt(p.state());
+    if (RENDER) (window as RenderHooks).__sy80start = () => { if (p.started) return false; p.start(); return true; };
     const tick = setInterval(() => { if (p.started) bc.postMessage({ kind: 'tick', elapsed: p.elapsed(), remaining: p.remaining(), idx: p.idx }); }, 1000);
     p.audio!.onMeter = () => {};
     return () => { off(); clearInterval(tick); bc.close(); p.destroy(); player.current = null; };
@@ -57,7 +61,7 @@ export function ShowPage() {
   return (
     <div className="showpage" data-theme={themeNow} data-chrome="dark">
       <div ref={host} className={`player ${hud || !st?.started ? 'idle' : ''}`} tabIndex={0} onClick={(e) => { const p = player.current; if (p?.started && !(e.target as HTMLElement).closest('button')) p.next(); }} />
-      {!st?.started && (
+      {!st?.started && !RENDER && (
         <div className="startgate">
           <div className="inner">
             <div className="name">{show?.meta.title ?? 'סבא יהודה'}</div>
@@ -70,7 +74,7 @@ export function ShowPage() {
           </div>
         </div>
       )}
-      {st?.started && (
+      {st?.started && !RENDER && (
         <div className={`hud ${hud || st.paused || st.ended ? 'on' : ''}`} onClick={e => e.stopPropagation()}>
           <span className="num">{st.idx + 1} / {st.total}</span>
           <span>{st.chapterTitle}</span>
@@ -87,7 +91,7 @@ export function ShowPage() {
         </div>
       )}
       <select aria-label="theme" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 1, height: 1 }} value={themeNow} onChange={e => player.current?.setLiveTheme(e.target.value)}>{THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
-      {st?.ended && <div className="endcard">סוף המצגת · <kbd>Home</kbd> להתחלה מחדש</div>}
+      {st?.ended && !RENDER && <div className="endcard">סוף המצגת · <kbd>Home</kbd> להתחלה מחדש</div>}
     </div>
   );
 }

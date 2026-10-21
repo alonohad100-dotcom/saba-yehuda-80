@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Play, RotateCcw, Tag, Settings, History, HardDriveDownload, HelpCircle, Sun, Moon, PackageCheck, FolderOpen, Usb, AlertTriangle } from 'lucide-react';
+import { X, Play, RotateCcw, Tag, Settings, History, HardDriveDownload, HelpCircle, Sun, Moon, PackageCheck, FolderOpen, Usb, AlertTriangle, Film, Smartphone, Monitor } from 'lucide-react';
 import { useChrome } from '@/chrome';
 import { useUi } from './ui';
 import { useShow, saveNow } from '@/store/show';
 import { useLibrary } from '@/store/library';
-import { api, ingestEvents, type IngestProgress, type ExportEstimate, type ExportProgress } from '@/api';
+import { api, ingestEvents, type IngestProgress, type ExportEstimate, type ExportProgress, type VideoEstimate, type VideoProgress } from '@/api';
 import { toast } from '@/store/toast';
 import { fmtTime, Show as ShowSchema, TRANSITION_LABEL, VIDEO_MUSIC_LABEL } from '@shared/model';
 import { AutoShowDialog } from './AutoShowDialog';
@@ -36,7 +36,7 @@ function ChromeChoice() {
 const mb = (b?: number) => b == null ? '?' : b >= 1073741824 ? `${(b / 1073741824).toFixed(1)} GB` : `${Math.max(1, Math.round(b / 1048576))} MB`;
 
 /** Export the whole show (player + every photo, video and song it uses) as an offline folder, optionally zipped, to this disk or a USB drive. */
-function ExportDialog({ onClose }: { onClose: () => void }) {
+function PackageExport({ onClose, kindSwitch }: { onClose: () => void; kindSwitch: React.ReactNode }) {
   const [est, setEst] = useState<ExportEstimate | null>(null); const [err, setErr] = useState('');
   const [dest, setDest] = useState(''); const [custom, setCustom] = useState(''); const [zip, setZip] = useState(false);
   const [p, setP] = useState<ExportProgress | null>(null);
@@ -53,6 +53,7 @@ function ExportDialog({ onClose }: { onClose: () => void }) {
       {done && <button className="btn" onClick={() => void api.revealExport().catch(e => toast((e as Error).message, 'error'))}><FolderOpen /> פתח את התיקייה</button>}
       <button className="btn primary" disabled={!est || busy || !target || tight || !est.dist} onClick={() => void start()}><PackageCheck /> {busy ? (p?.phase === 'zip' ? 'יוצר ZIP…' : 'מייצא…') : done ? 'ייצא שוב' : 'ייצא'}</button>
     </>}>
+      {kindSwitch}
       {!est && !err && <div className="muted">מחשב מה ייכנס לייצוא…</div>}
       {est && <>
         <div className="statgrid">
@@ -85,6 +86,78 @@ function ExportDialog({ onClose }: { onClose: () => void }) {
       {err && <div className="small" style={{ color: 'var(--bad)', marginTop: 10 }}>{err}</div>}
     </Dialog>
   );
+}
+
+/** Where to save: the exports folder, a USB drive, or a typed folder. Shared by both kinds of export. */
+function DestPicker({ est, dest, setDest, custom, setCustom, busy }: { est: { defaultDest: string; defaultFree?: number; drives: { root: string; free?: number }[] }; dest: string; setDest: (d: string) => void; custom: string; setCustom: (s: string) => void; busy: boolean }) {
+  const target = dest === '__custom__' ? custom.trim() : dest; const free = dest === est.defaultDest ? est.defaultFree : est.drives.find(d => d.root === dest)?.free;
+  return <div className="field"><label>לאן לשמור</label>
+    <div className="seg full">
+      <button aria-pressed={dest === est.defaultDest} onClick={() => setDest(est.defaultDest)} disabled={busy}>תיקיית הייצוא במחשב</button>
+      {est.drives.map(d => <button key={d.root} aria-pressed={dest === d.root} onClick={() => setDest(d.root)} disabled={busy} title={d.free != null ? `פנוי ${mb(d.free)}` : ''}><Usb /> <span className="ltr">{d.root}</span></button>)}
+      <button aria-pressed={dest === '__custom__'} onClick={() => setDest('__custom__')} disabled={busy}>תיקייה אחרת</button>
+    </div>
+    {dest === '__custom__' ? <input className="ltr" value={custom} onChange={e => setCustom(e.target.value)} placeholder="C:\\Users\\...\\Desktop" disabled={busy} /> : <span className="muted small ltr" style={{ textAlign: 'start' }}>{target}{free != null ? `  ·  פנוי ${mb(free)}` : ''}</span>}
+  </div>;
+}
+
+/** The whole show as one MP4: recorded in real time in a hidden browser, then encoded. Plays on phones, TVs and WhatsApp. */
+function VideoExport({ onClose, kindSwitch }: { onClose: () => void; kindSwitch: React.ReactNode }) {
+  const [est, setEst] = useState<VideoEstimate | null>(null); const [dests, setDests] = useState<ExportEstimate | null>(null); const [err, setErr] = useState('');
+  const [quality, setQuality] = useState<'720' | '1080'>('720'); const [dest, setDest] = useState(''); const [custom, setCustom] = useState('');
+  const [p, setP] = useState<VideoProgress | null>(null);
+  useEffect(() => { void saveNow().then(() => Promise.all([api.videoEstimate(), api.exportEstimate()])).then(([v, e]) => { setEst(v); setDests(e); setDest(e.defaultDest); }).catch(e => setErr((e as Error).message)); void api.videoStatus().then(s => { if (s.running || s.phase === 'done') setP(s); }).catch(() => {}); }, []);
+  useEffect(() => { if (!p?.running) return; const t = setInterval(() => { void api.videoStatus().then(s => { setP(s); if (!s.running) { if (s.phase === 'done') toast('הסרטון מוכן', 'ok'); else if (s.phase === 'error') toast('ייצוא הסרטון נכשל: ' + s.error, 'error'); } }); }, 700); return () => clearInterval(t); }, [p?.running]);
+  const target = dest === '__custom__' ? custom.trim() : dest; const busy = !!p?.running; const done = p?.phase === 'done';
+  const start = async () => { setErr(''); try { await saveNow(); setP(await api.startVideoExport({ dest: target || undefined, quality })); } catch (e) { setErr((e as Error).message.replace(/^\d+ [\w ]+? /, '')); } };
+  const pct = !p ? 0 : p.phase === 'record' ? Math.min(100, p.recorded / Math.max(1, p.expected) * 100) : p.phase === 'encode' ? p.encodePct : p.phase === 'done' ? 100 : 0;
+  const totalWait = est ? est.seconds + est.encodeSeconds[quality] : 0;
+  return (
+    <Dialog title="ייצוא המצגת" icon={<PackageCheck />} onClose={onClose} wide footer={<>
+      <span className="muted small grow" style={{ textAlign: 'start' }}>ההקלטה נמשכת כאורך המצגת. אפשר להמשיך לעבוד בינתיים; הרמקולים לא משמיעים כלום.</span>
+      {busy && <button className="btn" onClick={() => void api.cancelVideoExport().then(() => toast('הייצוא בוטל'))}>ביטול</button>}
+      {done && <button className="btn" onClick={() => void api.revealVideo().catch(e => toast((e as Error).message, 'error'))}><FolderOpen /> הצג את הקובץ</button>}
+      <button className="btn primary" disabled={!est || !est.browser || busy || !target} onClick={() => void start()}><Film /> {busy ? (p?.phase === 'encode' ? 'ממיר…' : 'מקליט…') : done ? 'צור סרטון שוב' : 'צור סרטון'}</button>
+    </>}>
+      {kindSwitch}
+      {!est && !err && <div className="muted">מחשב את אורך הסרטון…</div>}
+      {est && dests && <>
+        <p className="muted small" style={{ margin: '0 0 12px' }}>קובץ MP4 אחד עם כל המצגת: מעברים, תמונות, סרטונים ומוזיקה. מתנגן בכל טלפון, טאבלט, טלוויזיה ומחשב, בלי אינטרנט ובלי אפליקציה. אפשר לשלוח בוואטסאפ כמסמך.</p>
+        {!est.browser && <div className="check bad" style={{ cursor: 'default', marginBottom: 12 }}>לא נמצא Chrome או Edge במחשב; הם נדרשים להקלטה.</div>}
+        <div className="field"><label>איכות</label>
+          <div className="seg full">
+            <button aria-pressed={quality === '720'} onClick={() => setQuality('720')} disabled={busy}><Smartphone /> לטלפון · 720p · כ־{mb(est.sizes['720'])}</button>
+            <button aria-pressed={quality === '1080'} onClick={() => setQuality('1080')} disabled={busy}><Monitor /> לטלוויזיה · 1080p · כ־{mb(est.sizes['1080'])}</button>
+          </div>
+        </div>
+        <div className="statgrid">
+          <div className="stat"><div className="v">{est.slides}</div><div className="l">שקופיות</div></div>
+          <div className="stat"><div className="v num">{fmtTime(est.seconds)}</div><div className="l">אורך הסרטון</div></div>
+          <div className="stat"><div className="v num">{fmtTime(totalWait)}</div><div className="l">זמן הכנה משוער</div></div>
+        </div>
+        <div style={{ height: 12 }} />
+        <DestPicker est={dests} dest={dest} setDest={setDest} custom={custom} setCustom={setCustom} busy={busy} />
+      </>}
+      {p && p.phase !== 'idle' && <div style={{ marginTop: 12 }}>
+        <div className="row" style={{ justifyContent: 'space-between' }}><b>{({ launch: 'מכין…', record: 'מקליט את המצגת…', encode: 'ממיר ל־MP4…', done: 'הסרטון מוכן', error: 'הייצוא נכשל', cancelled: 'הייצוא בוטל', idle: '' } as Record<string, string>)[p.phase]}</b>
+          <span className="num muted small">{p.phase === 'record' ? `שקופית ${p.slide}/${p.slides} · ${fmtTime(p.recorded)} / ${fmtTime(p.expected)}` : p.phase === 'encode' ? `${p.encodePct}%` : p.phase === 'done' && p.bytes ? mb(p.bytes) : ''}</span></div>
+        <div style={{ height: 6, background: 'var(--line)', borderRadius: 3, overflow: 'hidden', margin: '6px 0' }}><i style={{ display: 'block', height: '100%', width: `${pct}%`, background: p.phase === 'error' ? 'var(--bad)' : 'var(--accent)', transition: 'width .5s' }} /></div>
+        {done && <div className="small" style={{ lineHeight: 1.7 }}>הקובץ: <span className="ltr">{p.file}</span><br />שולחים את הקובץ הזה. בוואטסאפ: אטב ← מסמך, כדי שלא יכווץ.</div>}
+        {p.phase === 'error' && <div className="small" style={{ color: 'var(--bad)' }}>{p.error}</div>}
+      </div>}
+      {err && <div className="small" style={{ color: 'var(--bad)', marginTop: 10 }}>{err}</div>}
+    </Dialog>
+  );
+}
+
+/** Export: a video for phones and TVs, or the full offline package for a computer. */
+function ExportDialog({ onClose }: { onClose: () => void }) {
+  const [kind, setKind] = useState<'video' | 'package'>('video');
+  const sw = <div className="field"><label>מה לייצא</label><div className="seg full">
+    <button aria-pressed={kind === 'video'} onClick={() => setKind('video')}><Film /> סרטון MP4 — לטלפון, לטלוויזיה ולשליחה</button>
+    <button aria-pressed={kind === 'package'} onClick={() => setKind('package')}><PackageCheck /> חבילה למחשב — המצגת החיה</button>
+  </div></div>;
+  return kind === 'video' ? <VideoExport onClose={onClose} kindSwitch={sw} /> : <PackageExport onClose={onClose} kindSwitch={sw} />;
 }
 
 function SettingsDialog({ onClose }: { onClose: () => void }) {

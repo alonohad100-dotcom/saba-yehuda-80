@@ -96,7 +96,7 @@ export class Player {
   setLiveTheme(id: string | null) { this.liveTheme = id ? themeById(id).id : null; this.applyTheme(); this.emit(); }
   cycleTheme(dir: 1 | -1 = 1) { this.setLiveTheme(nextThemeId(this.themeFor(), dir)); }
   /** `fullscreenEl`: the element to put in fullscreen. It must contain the HUD and the other overlays, so the page container, not the player: a fullscreen element is painted alone in the top layer and its siblings vanish. */
-  constructor(root: HTMLElement, private getShow: () => Show | null, private getAssets: () => Record<string, Asset>, private opts: { silent?: boolean; filter?: (e: Entry) => boolean; fullscreenEl?: HTMLElement } = {}) {
+  constructor(root: HTMLElement, private getShow: () => Show | null, private getAssets: () => Record<string, Asset>, private opts: { silent?: boolean; filter?: (e: Entry) => boolean; fullscreenEl?: HTMLElement; render?: boolean } = {}) {
     this.root = root; const a = document.createElement('div'); a.className = 'layer'; const b = document.createElement('div'); b.className = 'layer'; root.append(a, b); this.layers = [a, b];
     this.audio = opts.silent ? null : new AudioBus();
   }
@@ -106,7 +106,7 @@ export class Player {
   state(): PlayerState {
     const L = this.list(); const e = L[this.idx]; const n = L[this.idx + 1]; const sh = this.getShow();
     return { started: this.started, idx: this.idx, total: L.length, slideId: e?.s.id ?? null, type: e?.s.type ?? null, title: e ? slideTitle(e.s) : '', chapterId: e?.c.id ?? null, chapterTitle: e?.c.title ?? '', paused: this.paused, black: this.black, muted: this.audio?.muted ?? false,
-      manual: e ? slideAdvance(e.s) === 'manual' : false, seconds: e && sh ? slideSeconds(e.s, e.c, sh.settings, this.getAssets()) : 0, startedAt: this.startedAt, nextTitle: n ? `${n.c.title} · ${TYPE_LABEL[n.s.type]}${slideTitle(n.s) ? ' · ' + slideTitle(n.s) : ''}` : 'סוף המצגת', nextType: n?.s.type ?? null, notes: e?.s.notes ?? '', ended: this.ended,
+      manual: e && !this.opts.render ? slideAdvance(e.s) === 'manual' : false, seconds: e && sh ? slideSeconds(e.s, e.c, sh.settings, this.getAssets()) : 0, startedAt: this.startedAt, nextTitle: n ? `${n.c.title} · ${TYPE_LABEL[n.s.type]}${slideTitle(n.s) ? ' · ' + slideTitle(n.s) : ''}` : 'סוף המצגת', nextType: n?.s.type ?? null, notes: e?.s.notes ?? '', ended: this.ended,
       theme: this.themeFor(), liveTheme: this.liveTheme };
   }
   emit() { const st = this.state(); this.listeners.forEach(f => f(st)); }
@@ -141,7 +141,8 @@ export class Player {
       else { this.audio.resumeMusic(); this.audio.duck(cue === 'duck'); }
     }
     // video: play, duck, advance on end
-    const secs = slideSeconds(s, c, sh.settings, this.getAssets()); const manual = slideAdvance(s) === 'manual';
+    // render (video export): nothing waits for a click; a black screen holds 3 s unless it has its own length
+    const secs = this.opts.render && s.type === 'black' ? (s.seconds ?? 3) : slideSeconds(s, c, sh.settings, this.getAssets()); const manual = !this.opts.render && slideAdvance(s) === 'manual';
     if (s.type === 'video') {
       const v = root.querySelector('video') as HTMLVideoElement | null;
       if (v) { this.video = v; const inn = s.trimIn ?? 0; const out = s.trimOut; v.currentTime = inn; if (this.audio) this.audio.attachVideo(v, s.volume ?? 1); else v.muted = true;

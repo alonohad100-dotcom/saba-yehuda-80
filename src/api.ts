@@ -24,6 +24,11 @@ export const api = {
   startExport: (opts: { dest?: string; zip?: boolean }) => j<ExportProgress>('/api/export', { method: 'POST', body: JSON.stringify(opts) }),
   exportStatus: () => j<ExportProgress>('/api/export/status'),
   revealExport: () => j<{ ok: boolean }>('/api/export/reveal', { method: 'POST', body: '{}' }),
+  videoEstimate: () => j<VideoEstimate>('/api/export/video/estimate'),
+  startVideoExport: (opts: { dest?: string; quality: '720' | '1080' }) => j<VideoProgress>('/api/export/video', { method: 'POST', body: JSON.stringify(opts) }),
+  videoStatus: () => j<VideoProgress>('/api/export/video/status'),
+  cancelVideoExport: () => j<{ ok: boolean }>('/api/export/video/cancel', { method: 'POST', body: '{}' }),
+  revealVideo: () => j<{ ok: boolean }>('/api/export/video/reveal', { method: 'POST', body: '{}' }),
   kvGet: <T>(key: string) => j<{ key: string; value: string | null }>(`/api/kv/${key}`).then(r => (r.value ? (JSON.parse(r.value) as T) : null)),
   kvSet: (key: string, value: unknown) => j<{ ok: boolean }>(`/api/kv/${key}`, { method: 'PUT', body: JSON.stringify(value) }),
   /** Copy a file into media/ (the server picks photos / videos/greetings / music by type). `sub` keeps the folder it came from, under media/photos.
@@ -42,6 +47,8 @@ export const api = {
 
 export interface ExportEstimate { photos: number; videos: number; music: number; files: number; bytes: number; seconds: number; slides: number; missing: string[]; defaultDest: string; defaultFree?: number; drives: { root: string; free?: number }[]; dist: boolean }
 export interface ExportProgress { running: boolean; phase: 'idle' | 'copy' | 'zip' | 'done' | 'error'; done: number; total: number; bytes: number; totalBytes: number; dir?: string; zip?: string; error?: string; missing: string[]; startedAt?: number; finishedAt?: number }
+export interface VideoEstimate { seconds: number; slides: number; browser: boolean; sizes: { '720': number; '1080': number }; encodeSeconds: { '720': number; '1080': number } }
+export interface VideoProgress { running: boolean; phase: 'idle' | 'launch' | 'record' | 'encode' | 'done' | 'error' | 'cancelled'; quality?: '720' | '1080'; slide: number; slides: number; recorded: number; expected: number; encodePct: number; file?: string; bytes?: number; error?: string; startedAt?: number; finishedAt?: number }
 export interface IngestProgress { running: boolean; phase: string; done: number; total: number; current?: string; photos: number; videos: number; music: number; warnings: { file: string; message: string }[]; errors: number; startedAt?: number; finishedAt?: number; log: string[]; analyzeDone?: number; analyzeTotal?: number }
 
 export function ingestEvents(on: (type: string, data: unknown) => void): () => void {

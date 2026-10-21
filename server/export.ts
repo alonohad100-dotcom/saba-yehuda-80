@@ -163,6 +163,14 @@ export async function runExport(opts: { dest?: string; zip?: boolean }): Promise
   }
 }
 
+/** Select a file this server wrote in Explorer (Finder / file manager elsewhere). */
+export function revealPath(target: string): boolean {
+  if (!fs.existsSync(target)) return false;
+  if (process.platform === 'win32') spawn('explorer.exe', ['/select,', target], { detached: true, stdio: 'ignore' }).unref();
+  else spawn(process.platform === 'darwin' ? 'open' : 'xdg-open', [path.dirname(target)], { detached: true, stdio: 'ignore' }).unref();
+  return true;
+}
+
 /** Show the finished export in Explorer (only the folder this server just wrote). */
 export function revealExport(): boolean {
   const target = exportProgress.zip && fs.existsSync(exportProgress.zip) ? exportProgress.zip : exportProgress.dir;

@@ -53,6 +53,7 @@
     "heic-convert": "2.1.0",
     "lucide": "^1.59.0",
     "lucide-react": "1.59.0",
+    "puppeteer-core": "25.14.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "sharp": "0.35.5",
@@ -68,7 +69,6 @@
     "@vitejs/plugin-react": "6.1.2",
     "concurrently": "10.0.6",
     "cross-env": "10.1.0",
-    "puppeteer-core": "25.14.0",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vite": "8.3.4"
