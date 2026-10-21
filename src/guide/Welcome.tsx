@@ -20,7 +20,7 @@ export function Welcome() {
         <div className="welcome-opts">
           <button className="welcome-opt" onClick={() => { done('guide'); openGuide('start'); }}><BookOpen /><b>המדריך המלא</b><span>כל היכולות עם הדגמות חיות של כל אפקט, וצעד־אחר־צעד לבניית מצגת שלמה. נפתח בחלון נפרד, ליד העורך.</span></button>
           <button className="welcome-opt" onClick={() => { done('tour'); ensureSelection(); startTour('editor'); }}><Compass /><b>סיור קצר בעורך</b><span>כשתי דקות: 15 תחנות על המסך הזה, כל אחת מסבירה חלק אחד. אפשר לצאת בכל רגע עם Esc.</span></button>
-          <button className="welcome-opt" onClick={() => done('start')}><Rocket /><b>ישר לעבודה</b><span>שלוש פעולות: 1 הניחו קבצים ב־media/ ולחצו „ספרייה” → „סרוק”. 2 „צור אוטומטית” או גררו תמונות לסטוריבורד. 3 „נגן מצגת”.</span></button>
+          <button className="welcome-opt" onClick={() => done('start')}><Rocket /><b>ישר לעבודה</b><span>שלוש פעולות: 1 „הוסף” בספרייה, או גררו תמונות ותיקיות לחלון. 2 „צור אוטומטית” או גררו תמונות לסטוריבורד. 3 „נגן מצגת”.</span></button>
         </div>
         <div className="muted small">אפשר לחזור לכאן תמיד: כפתור „מדריך” בסרגל העליון, או <kbd>?</kbd> לקיצורי המקלדת.</div>
       </div>

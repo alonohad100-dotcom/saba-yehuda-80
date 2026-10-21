@@ -3,6 +3,9 @@
 Editor and cinematic show for Yehuda's 80th birthday. Runs entirely on one laptop, offline. Hebrew, RTL.
 
 ## Quick start
+Double-click **`start-editor.cmd`** in the project folder. It builds if needed, starts the server in that window and opens http://127.0.0.1:4000/edit. Keep the window open while you work; closing it stops the app. If the server is already running it just opens the editor.
+
+For development:
 ```
 npm install
 npm run dev            # server on :4000 + Vite on :5173 → open http://127.0.0.1:5173/edit
@@ -16,7 +19,10 @@ Production (show night):
 npm run show           # builds, starts the server on :4000, opens Chrome in kiosk mode on /show
 ```
 
-## Put your media here
+## Adding media
+In the editor, **ספרייה → הוסף**: pick files, pick a whole folder (sub-folders kept), or open `media/` in Explorer. You can also drag files and folders from Explorer onto anywhere in the editor window. Everything is copied into `media/` (photos keep their folder structure, so a folder named "1966 חתונה" still dates its photos), a file copied twice is kept once, non-media files are skipped, a progress card shows the copy, and the scan starts by itself. `npm run audit:upload` tests all of this on a throwaway copy (`SY80_HOME`).
+
+## Put your media here (manual route)
 ```
 media/photos/**                 any folder structure; a folder named "1966 חתונה" or "שנות ה-60" or "1970s" gives photos without EXIF a year
 media/videos/greetings/*.mp4    file name = the greeter's name (e.g. נועה.mp4); WhatsApp/iPhone clips of any size and orientation
@@ -83,6 +89,7 @@ Eleven themes (nine dark, two light), each with its own grounds, text, metallic 
 | `node scripts/inspect.mjs <dir>` / `inspect-show.mjs` / `shot-slides.mjs` / `inspect-auto.mjs` | headless screenshots and checks (needs Chrome or Edge installed) |
 | `npm run audit:static` · `audit:api` · `audit:ui` · `audit:editing` · `audit:theme` (server on :4000, demo media ingested) · `audit:db` (server stopped) | the audit suites described in docs/AUDIT.md |
 | `npm run audit:guide` (server on :4000, works with an empty library) | the guide, tour, welcome card and guide→editor bridge |
+| `npm run audit:upload` (self-contained: starts its own server on :4100 over a temp copy) | the upload route, file/folder pickers, drop anywhere, folder drag, progress card, queued rescan |
 | `npm run audit:contrast` · `audit:responsive` (server on :4000) | text and field-outline contrast on every screen in both interface themes; layout at six widths, drawers, panel resizing |
 | `npm run audit:wiring` (server on :4000, demo media ingested) | **real-input** audit: every control is driven with the mouse and keyboard, never with `element.click()`. In every screen state it checks that each visible control is actually hit-testable (nothing covers or clips it) and that each disabled control says why; then it exercises every feature end to end: add tools and menus, card actions, context menu, keyboard, library, drag, inspector controls of every slide type, dialogs, wizard, drawers, welcome and tour, show HUD in fullscreen, presenter remote, guide. Restores the show it found |
 | `node scripts/ui-shots.mjs <dir> "" <w> <h> <light\|dark>` | screenshots of every page and dialog |

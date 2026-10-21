@@ -25,7 +25,7 @@ export function TopBar() {
         <span className="totals" title={`${t.slides} שקופיות · ${t.chapters} פרקים · ${t.videos} ברכות`}><b className="num">{fmtTime(t.seconds)}</b><span>{t.slides} שק׳ · {t.chapters} פרקים · {t.videos} ברכות</span></span>
       </div>
       <div className="tb-group tb-center">
-        <button className="btn tip" data-tour="ingest" data-tip="קליטת מדיה מהתיקייה media/" onClick={() => openDialog('ingest')}><HardDriveDownload /><span className="lbl">ספרייה</span></button>
+        <button className="btn tip" data-tour="ingest" data-tip="קליטת מדיה מהתיקייה media/&lrm;" onClick={() => openDialog('ingest')}><HardDriveDownload /><span className="lbl">ספרייה</span></button>
         <button className="btn soft gold tip" data-tour="auto" data-tip="יצירת מצגת שלמה מספריית התמונות" onClick={() => openDialog('auto')}><Sparkles /><span className="lbl">צור אוטומטית</span></button>
         <button className="btn tip" data-tour="add-chapter" data-tip="פרק חדש אחרי הפרק הנבחר" onClick={() => addChapter(sel.chapterId ?? undefined)}><Plus /><span className="lbl">פרק</span></button>
       </div>

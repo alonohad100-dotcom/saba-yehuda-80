@@ -12,7 +12,7 @@ function progressItems(show: Show | null, assets: Asset[], versions: { label: st
   const slides = show?.chapters.flatMap(c => c.slides) ?? []; const used = new Set(slides.flatMap(slideAssetIds));
   const photoSlides = slides.filter(s => s.type === 'photo'); const captioned = photoSlides.filter(s => s.type === 'photo' && s.caption).length;
   return [
-    { id: 'photos', t: 'תמונות', done: photos.length > 0, hint: photos.length ? `${photos.length} תמונות` : 'הניחו תמונות ב־media/photos וסרקו', cmd: { cmd: 'dialog', id: 'ingest' } },
+    { id: 'photos', t: 'תמונות', done: photos.length > 0, hint: photos.length ? `${photos.length} תמונות` : '„הוסף” בספרייה, או גררו תמונות לחלון העורך', cmd: { cmd: 'dialog', id: 'ingest' } },
     { id: 'videos', t: 'סרטוני ברכה', done: videos.length > 0, hint: videos.length ? `${videos.length} ברכות` : 'media/videos/greetings', cmd: { cmd: 'dialog', id: 'ingest' } },
     { id: 'music', t: 'מוזיקה', done: music.length > 0, hint: music.length ? `${music.length} קטעים` : 'media/music', cmd: { cmd: 'dialog', id: 'ingest' } },
     { id: 'chapters', t: 'לפחות 3 פרקים', done: (show?.chapters.length ?? 0) >= 3, hint: `${show?.chapters.length ?? 0} פרקים`, cmd: { cmd: 'dialog', id: 'auto' } },

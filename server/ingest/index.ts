@@ -12,10 +12,9 @@ import { regroup } from './groups.ts';
 import { facesAvailable } from './faces.ts';
 import { probe, transcodeVideo, transcodeMusic, peaks } from './ffmpeg.ts';
 import type { Asset, AssetType, YearSource } from '../../shared/model.ts';
+import { PHOTO_EXT, VIDEO_EXT, MUSIC_EXT } from '../../shared/media.ts';
 
-const IMG = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff', '.heic', '.heif', '.avif', '.gif', '.bmp']);
-const VID = new Set(['.mp4', '.mov', '.m4v', '.3gp', '.mkv', '.avi', '.webm', '.mts', '.m2ts', '.vob', '.mpg', '.mpeg', '.wmv', '.flv', '.ts']); // ffmpeg decodes all of these; DVD .vob and old camcorder files included
-const MUS = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg', '.opus', '.wma', '.mpga', '.mp2', '.aiff', '.aif', '.amr']);
+const IMG = new Set(PHOTO_EXT), VID = new Set(VIDEO_EXT), MUS = new Set(MUSIC_EXT);
 const AUD_ALIAS = new Set(['.mpeg', '.mpg']); // MPEG audio files (an MP3 is MPEG-1 layer III) that some apps save with the video extension
 
 export interface IngestProgress { running: boolean; phase: string; done: number; total: number; current?: string; photos: number; videos: number; music: number; warnings: { file: string; message: string }[]; errors: number; startedAt?: number; finishedAt?: number; log: string[]; analyzeDone?: number; analyzeTotal?: number }
@@ -151,8 +150,9 @@ export async function runAnalysis(): Promise<{ analysed: number; dupGroups: numb
   return { analysed: todo.length, dupGroups: g.dupGroups, burstGroups: g.burstGroups, faces: facesAvailable };
 }
 
+let rescan = false; // a scan asked for while one runs (files still arriving) gets one more pass afterwards
 export async function runIngest(): Promise<IngestProgress> {
-  if (progress.running) return progress;
+  if (progress.running) { rescan = true; return progress; }
   Object.assign(progress, { running: true, phase: 'scan', done: 0, total: 0, photos: 0, videos: 0, music: 0, warnings: [], errors: 0, startedAt: Date.now(), finishedAt: undefined, log: [] });
   emit('start');
   try {
@@ -185,5 +185,6 @@ export async function runIngest(): Promise<IngestProgress> {
   } finally {
     progress.running = false; progress.finishedAt = Date.now(); emit('done');
   }
+  if (rescan) { rescan = false; void runIngest(); }
   return progress;
 }
