@@ -160,7 +160,7 @@ a { color: var(--accent-2); }
 .preview-status { display: flex; align-items: center; gap: 10px; padding: 0 14px; height: 36px; border-bottom: 1px solid var(--line); background: var(--panel); font-size: 12.5px; color: var(--fg-3); flex: none; white-space: nowrap; overflow: hidden; }
 .preview-status .pill { height: 22px; }
 .preview-tools { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--line); background: var(--panel); flex: none; flex-wrap: wrap; }
-.stage-wrap { flex: 1; min-height: 0; display: grid; place-items: center; padding: 18px; background: var(--stage-bg); }
+.stage-wrap { flex: 1; min-height: 0; min-width: 0; overflow: hidden; display: grid; place-items: center; padding: 18px; background: var(--stage-bg); } /* min-width 0: otherwise the stage's fixed width keeps the wrap from shrinking when the window narrows, the resize observer never fires and the stage spills over the tools */
 .stage { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; box-shadow: 0 24px 60px rgba(15,23,42,.28), 0 0 0 1px rgba(15,23,42,.35); container-type: size; direction: rtl; }
 .stage .layer, .stage > .sl { position: absolute; inset: 0; }
 .stage-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #cbd5e1; font-size: 13px; text-align: center; padding: 20px; background: linear-gradient(135deg, #1f2937, #0f172a); }
@@ -235,6 +235,13 @@ a { color: var(--accent-2); }
 .slide .warnmark { position: absolute; top: 24px; inset-inline-end: 5px; color: #fbbf24; } .slide .warnmark svg { width: 12px; height: 12px; }
 .slide .lock, .ch-head .lock { position: absolute; top: 4px; inset-inline-end: 22px; color: #fff; } .slide .lock svg, .ch-head .lock svg { width: 11px; height: 11px; } .ch-head .lock { top: 7px; inset-inline-end: 8px; color: var(--accent-2); }
 .slide .autob { position: absolute; bottom: 4px; inset-inline-end: 44px; color: rgba(255,255,255,.85); } .slide .autob svg { width: 10px; height: 10px; }
+/* hover actions on a card: duplicate and delete; shown on hover, focus and on the selected card */
+.slide .acts { position: absolute; top: 24px; inset-inline-start: 4px; display: flex; gap: 3px; opacity: 0; transition: opacity .12s; z-index: 2; }
+.slide:hover .acts, .slide.sel .acts, .slide .acts:focus-within { opacity: 1; }
+.slide .acts button { width: 22px; height: 22px; border-radius: 5px; background: var(--glass); color: var(--on-glass); display: grid; place-items: center; backdrop-filter: blur(3px); cursor: pointer; } .slide .acts button:hover { background: var(--accent); } .slide .acts button.del:hover { background: var(--bad); } .slide .acts svg { width: 12px; height: 12px; }
+.menu button.danger { color: var(--bad); } .menu button.danger svg { color: var(--bad); }
+.menu button[disabled] { opacity: .55; cursor: not-allowed; } .menu button[disabled]:hover { background: none; } .menu button span.k { white-space: normal; max-width: 190px; text-align: end; line-height: 1.3; }
+.insp-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel-2); position: sticky; top: 0; z-index: 3; }
 .addslide { flex: 0 0 44px; height: var(--card-h); border: 1px dashed var(--line-3); border-radius: var(--r-sm); color: var(--muted); display: grid; place-items: center; transition: all .12s; background: var(--panel); } .addslide:hover { border-color: var(--accent); color: var(--accent-2); background: var(--accent-dim); } .addslide svg { width: 18px; height: 18px; }
 .story-foot { display: flex; align-items: center; gap: 14px; padding: 6px 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); flex-wrap: wrap; flex: none; }
 .story-foot .zoom { display: inline-flex; align-items: center; gap: 6px; } .story-foot .zoom input { width: 90px; } .story-foot .zoom svg { width: 14px; height: 14px; }
@@ -351,3 +358,10 @@ dialog.wiz::backdrop, .wiz-backdrop { background: rgba(15,23,42,.45); } [data-ch
 /* preview tools: icon-only view buttons on narrower screens */
 @media (max-width: 1500px) { .preview-tools .lbl { display: none; } }
 .story-hint { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px dashed var(--line-3); border-radius: var(--r); background: var(--panel-2); color: var(--fg-3); font-size: 13px; line-height: 1.5; max-width: 900px; } .story-hint > svg { width: 22px; height: 22px; color: var(--accent); flex: none; } .story-hint b { color: var(--fg); } .story-hint > div { flex: 1; }
+
+/* slide card: music cue badge (slide.music other than auto) */
+.slide .mcue { position: absolute; top: 4px; inset-inline-end: 36px; color: #fff; background: rgba(0,0,0,.45); border-radius: 4px; padding: 1px 2px; display: inline-flex; } .slide .mcue svg { width: 11px; height: 11px; }
+
+/* the caption can be dragged on the preview stage */
+.stage .sl .cap, .stage .sl [data-tx] { pointer-events: auto; cursor: move; }
+.tx-block { padding: 8px 0 2px; border-top: 1px dashed var(--line); } .tx-block:first-of-type { border-top: 0; padding-top: 0; } .tx-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12.5px; }

@@ -64,7 +64,7 @@ export function Tour() {
         <div className="tour-f">
           {cur.guide && <button className="btn sm ghost" onClick={() => openGuide(cur.guide)}><BookOpen /> עוד במדריך</button>}
           <span className="grow" />
-          <button className="btn sm" disabled={step === 0} onClick={prev}><ChevronRight /> הקודם</button>
+          <button className="btn sm" disabled={step === 0} title={step === 0 ? 'זאת התחנה הראשונה' : 'התחנה הקודמת (→)'} onClick={prev}><ChevronRight /> הקודם</button>
           <button className="btn sm primary" onClick={next}>{step >= n - 1 ? 'סיום' : 'הבא'} <ChevronLeft /></button>
         </div>
         <div className="tour-dots">{def.steps.map((_, i) => <i key={i} className={i === step ? 'on' : i < step ? 'done' : ''} onClick={() => setStep(i)} />)}</div>

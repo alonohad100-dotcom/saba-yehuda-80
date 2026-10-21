@@ -1,5 +1,5 @@
 import gsap from 'gsap';
-import { type Show, type Slide, type Chapter, type Asset, DERIVATIVES, slideSeconds, slideAdvance, slideTransition, slideTitle, TYPE_LABEL, slideAssetIds } from '@shared/model';
+import { type Show, type Slide, type Chapter, type Asset, DERIVATIVES, slideSeconds, slideAdvance, slideTransition, slideTitle, TYPE_LABEL, slideAssetIds, resolveMusicCue, trackAt } from '@shared/model';
 import { buildSlide, animateSlide, preloadSlide, type RenderCtx } from './slides';
 import { resolveTheme, themeById, nextThemeId } from '@shared/themes';
 
@@ -32,7 +32,7 @@ export class AudioBus {
   ctx: AudioContext | null = null;
   master!: GainNode; musicGain!: GainNode; videoGain!: GainNode;
   private els: [HTMLAudioElement, HTMLAudioElement] | null = null; private active = 0; private sources = new WeakMap<HTMLMediaElement, MediaElementAudioSourceNode>();
-  level = .7; duckLevel = .1; muted = false; ducked = false; currentId: string | null = null; private loopStart = 0;
+  level = .7; duckLevel = .1; muted = false; ducked = false; paused = false; stopped = false; currentId: string | null = null; private loopStart = 0; private fadeTimer: ReturnType<typeof setTimeout> | null = null;
   onMeter?: (music: number, video: number) => void;
   unlock() {
     if (this.ctx) { void this.ctx.resume(); return; }
@@ -42,13 +42,15 @@ export class AudioBus {
     this.els = [new Audio(), new Audio()]; for (const a of this.els) { a.preload = 'auto'; a.loop = false; this.source(a).connect(this.musicGain); a.addEventListener('timeupdate', () => this.maybeLoop(a)); }
   }
   private source(m: HTMLMediaElement): MediaElementAudioSourceNode { let s = this.sources.get(m); if (!s) { s = this.ctx!.createMediaElementSource(m); this.sources.set(m, s); } return s; }
-  private target() { return this.muted ? 0 : (this.ducked ? this.level * this.duckLevel : this.level); }
+  private target() { return this.muted || this.paused ? 0 : (this.ducked ? this.level * this.duckLevel : this.level); }
+  private clearFade() { if (this.fadeTimer) { clearTimeout(this.fadeTimer); this.fadeTimer = null; } }
   private ramp(g: GainNode, v: number, t: number) { if (!this.ctx) return; g.gain.cancelScheduledValues(this.ctx.currentTime); g.gain.setTargetAtTime(v, this.ctx.currentTime, Math.max(.01, t / 3)); }
   /** Switch to a chapter's track with a crossfade; same id keeps playing. */
   setTrack(assetId: string | undefined, startSec = 0, level?: number) {
     if (!this.ctx || !this.els) return;
     if (level != null) this.level = level;
-    if (!assetId || assetId === this.currentId) { this.ramp(this.musicGain, this.target(), 1); this.meter(); return; }
+    if (!assetId || assetId === this.currentId) { if (this.paused) this.resumeMusic(); else { this.ramp(this.musicGain, this.target(), 1); this.meter(); } return; }
+    this.clearFade(); this.paused = false; this.stopped = false;
     const url = DERIVATIVES.music(assetId); this.currentId = assetId; this.loopStart = startSec;
     const old = this.els[this.active]; const nxt = this.els[1 - this.active]; this.active = 1 - this.active;
     // per-element fade using the element volume while the shared gain stays at target
@@ -64,8 +66,14 @@ export class AudioBus {
   duck(on: boolean) { this.ducked = on; this.ramp(this.musicGain, this.target(), on ? .6 : 1.4); this.meter(); }
   mute(m: boolean) { this.muted = m; this.ramp(this.musicGain, this.target(), .3); this.meter(); }
   attachVideo(v: HTMLVideoElement, volume = 1) { if (!this.ctx) return; try { this.source(v).connect(this.videoGain); } catch { /* already connected */ } v.volume = Math.min(1, volume); }
-  stopMusic() { if (!this.els) return; this.ramp(this.musicGain, 0, 1); setTimeout(() => this.els?.forEach(a => a.pause()), 1500); this.currentId = null; }
-  meter() { this.onMeter?.(this.muted ? 0 : (this.ducked ? this.level * this.duckLevel : this.level), this.ducked ? 1 : 0); }
+  /** Fade out but keep the position; resumeMusic() carries on from the same point. */
+  pauseMusic(fade = 1.5) { if (!this.els || this.paused || !this.currentId) return; this.paused = true; this.clearFade(); this.ramp(this.musicGain, 0, fade); this.fadeTimer = setTimeout(() => { if (this.paused) this.els?.forEach(a => a.pause()); }, fade * 1000); this.meter(); }
+  resumeMusic(fade = 1.2) { if (!this.els || !this.paused) return; this.paused = false; this.clearFade(); const a = this.els[this.active]; if (a.src) void a.play().catch(() => {}); this.ramp(this.musicGain, this.target(), fade); this.meter(); }
+  /** Fade out and forget the track; music returns only with setTrack()/restart(). */
+  stopMusic(fade = 1.5) { if (!this.els) return; this.clearFade(); this.ramp(this.musicGain, 0, fade); const els = this.els; this.fadeTimer = setTimeout(() => els.forEach(a => { a.pause(); a.removeAttribute('src'); a.load(); }), fade * 1000); this.currentId = null; this.paused = false; this.stopped = true; this.meter(); }
+  /** Play the track from its start point again, also after a stop. */
+  restart(assetId: string, startSec = 0, level?: number) { this.currentId = null; this.setTrack(assetId, startSec, level); }
+  meter() { this.onMeter?.(this.muted || this.paused || !this.currentId ? 0 : (this.ducked ? this.level * this.duckLevel : this.level), this.ducked ? 1 : 0); }
   destroy() { this.els?.forEach(a => { a.pause(); a.removeAttribute('src'); }); void this.ctx?.close(); this.ctx = null; }
 }
 
@@ -81,13 +89,14 @@ export class Player {
   root: HTMLElement; layers: [HTMLElement, HTMLElement]; private cur = 0; idx = -1; started = false; paused = false; black = false; ended = false;
   private tl: gsap.core.Timeline | null = null; private timer: gsap.core.Tween | null = null; private video: HTMLVideoElement | null = null;
   audio: AudioBus | null; startedAt = 0; private listeners: ((st: PlayerState) => void)[] = []; private confettiCanvas: HTMLCanvasElement | null = null;
-  liveTheme: string | null = null;
+  liveTheme: string | null = null; private musicCue: ReturnType<typeof resolveMusicCue> = 'continue';
   /** Theme for the slide at index i (live override → slide → chapter → show). */
   themeFor(i = this.idx): string { const sh = this.getShow(); const e = this.list()[i]; return resolveTheme(sh?.settings.theme, e?.c.theme, e?.s.theme, this.liveTheme); }
   applyTheme() { applyThemeAttr(this.root, this.themeFor()); }
   setLiveTheme(id: string | null) { this.liveTheme = id ? themeById(id).id : null; this.applyTheme(); this.emit(); }
   cycleTheme(dir: 1 | -1 = 1) { this.setLiveTheme(nextThemeId(this.themeFor(), dir)); }
-  constructor(root: HTMLElement, private getShow: () => Show | null, private getAssets: () => Record<string, Asset>, private opts: { silent?: boolean; filter?: (e: Entry) => boolean } = {}) {
+  /** `fullscreenEl`: the element to put in fullscreen. It must contain the HUD and the other overlays, so the page container, not the player: a fullscreen element is painted alone in the top layer and its siblings vanish. */
+  constructor(root: HTMLElement, private getShow: () => Show | null, private getAssets: () => Record<string, Asset>, private opts: { silent?: boolean; filter?: (e: Entry) => boolean; fullscreenEl?: HTMLElement } = {}) {
     this.root = root; const a = document.createElement('div'); a.className = 'layer'; const b = document.createElement('div'); b.className = 'layer'; root.append(a, b); this.layers = [a, b];
     this.audio = opts.silent ? null : new AudioBus();
   }
@@ -118,8 +127,19 @@ export class Player {
     runTransition(inL, outL, t, d);
     setTimeout(() => { if (this.layers[this.cur] === inL) outL.innerHTML = ''; }, (d + .3) * 1000); // free the old slide's media
     this.tl = animateSlide(root, s, ctx, { onFinale: () => this.confetti() });
-    // music per chapter
-    if (this.audio && (!prevEntry || prevEntry.c.id !== c.id || !this.audio.currentId)) { if (c.musicId) this.audio.setTrack(c.musicId, c.musicStartSec ?? 0, c.musicLevel ?? sh.settings.musicLevel); }
+    // music: the chapter's track, then the slide's cue
+    if (this.audio) {
+      const fade = sh.settings.musicFadeSec; const chapterChanged = !prevEntry || prevEntry.c.id !== c.id; const lvl = (l?: number) => l ?? sh.settings.musicLevel;
+      if (s.musicId) this.audio.setTrack(s.musicId, s.musicStartSec ?? 0, lvl(s.musicLevel)); // the slide's own song: crossfades from whatever played; the same song keeps playing
+      else if (chapterChanged && c.musicOff) this.audio.stopMusic(fade);
+      else if (chapterChanged && c.musicId) this.audio.setTrack(c.musicId, c.musicStartSec ?? 0, lvl(c.musicLevel)); // same song keeps playing
+      else if (!this.audio.currentId && !this.audio.stopped) { const t = trackAt(sh, c, s); if (t) this.audio.setTrack(t.musicId, t.startSec, lvl(t.level)); } // first slide, or started mid-show
+      const cue = resolveMusicCue(s, sh.settings); this.musicCue = cue;
+      if (cue === 'restart') { const t = trackAt(sh, c, s); if (t) this.audio.restart(t.musicId, t.startSec, lvl(t.level)); }
+      else if (cue === 'stop') this.audio.stopMusic(fade);
+      else if (cue === 'pause') this.audio.pauseMusic(fade);
+      else { this.audio.resumeMusic(); this.audio.duck(cue === 'duck'); }
+    }
     // video: play, duck, advance on end
     const secs = slideSeconds(s, c, sh.settings, this.getAssets()); const manual = slideAdvance(s) === 'manual';
     if (s.type === 'video') {
@@ -128,25 +148,25 @@ export class Player {
         const prog = root.querySelector('.vprog i') as HTMLElement | null;
         v.addEventListener('timeupdate', () => { if (prog) prog.style.width = `${Math.min(100, ((v.currentTime - inn) / Math.max(.1, (out ?? v.duration) - inn)) * 100)}%`; if (out != null && v.currentTime >= out) { v.pause(); this.onVideoEnd(manual); } });
         v.addEventListener('ended', () => this.onVideoEnd(manual));
-        const startPlay = () => { void v.play().catch(() => { /* autoplay blocked: user already clicked Start, so this is rare */ }); if (this.audio) this.audio.duck(true); };
+        const startPlay = () => { void v.play().catch(() => { /* autoplay blocked: user already clicked Start, so this is rare */ }); }; // what the music does meanwhile is the slide's cue (above)
         if (v.readyState >= 2) startPlay(); else v.addEventListener('loadeddata', startPlay, { once: true });
         if (!manual) this.timer = gsap.delayedCall(secs + 6, () => this.next()); // safety net if 'ended' never fires
       }
     } else {
-      if (this.audio?.ducked) gsap.delayedCall(.3, () => this.audio?.duck(false));
       if (!manual && !this.paused) this.timer = gsap.delayedCall(secs + d * .5, () => this.next());
     }
     for (const e of L.slice(i + 1, i + 4)) preloadSlide(e.s, ctx);
     this.emit();
   }
-  private onVideoEnd(manual: boolean) { if (this.audio) this.audio.duck(false); if (!manual && this.idx < this.list().length - 1 && !this.paused) { this.timer?.kill(); this.timer = gsap.delayedCall(.8, () => this.next()); } else if (!manual) { this.ended = true; this.emit(); } }
+  private onVideoEnd(manual: boolean) { if (this.audio) { if (this.musicCue === 'duck') this.audio.duck(false); else if (this.musicCue === 'pause') this.audio.resumeMusic(); } if (!manual && this.idx < this.list().length - 1 && !this.paused) { this.timer?.kill(); this.timer = gsap.delayedCall(.8, () => this.next()); } else if (!manual) { this.ended = true; this.emit(); } }
   next() { if (this.idx >= this.list().length - 1) { this.ended = true; this.timer?.kill(); this.emit(); return; } this.go(this.idx + 1); }
   prev() { this.go(Math.max(0, this.idx - 1)); }
   pause() { this.paused = !this.paused; if (this.paused) { this.timer?.pause(); this.tl?.pause(); this.video?.pause(); } else { this.timer?.resume(); this.tl?.resume(); void this.video?.play().catch(() => {}); } this.emit(); }
   toggleBlack() { this.black = !this.black; this.layers.forEach(l => gsap.to(l, { opacity: this.black ? 0 : 1, duration: .5 })); if (this.black) { this.timer?.pause(); this.tl?.pause(); this.video?.pause(); if (this.audio) this.audio.mute(true); } else { this.timer?.resume(); this.tl?.resume(); void this.video?.play().catch(() => {}); if (this.audio) this.audio.mute(false); } this.emit(); }
   toggleMute() { if (this.audio) this.audio.mute(!this.audio.muted); this.emit(); }
   restart() { this.paused = false; this.go(0, 'dip'); }
-  fullscreen() { if (document.fullscreenElement) void document.exitFullscreen().catch(() => {}); else void this.root.requestFullscreen?.().catch(() => {}); }
+  fullscreenTarget() { return this.opts.fullscreenEl ?? this.root.parentElement ?? this.root; }
+  fullscreen() { if (document.fullscreenElement) void document.exitFullscreen().catch(() => {}); else void this.fullscreenTarget().requestFullscreen?.().catch(() => {}); }
   elapsed() { return this.started ? (Date.now() - this.startedAt) / 1000 : 0; }
   remaining() { const sh = this.getShow(); if (!sh) return 0; return this.list().slice(Math.max(0, this.idx)).reduce((t, e) => t + slideSeconds(e.s, e.c, sh.settings, this.getAssets()), 0); }
   confetti() {

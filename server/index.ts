@@ -8,6 +8,7 @@ import { openDb, listAssets, patchAsset, listShowVersions, getShowVersion, label
 import { loadShow, saveShow } from './show-store.ts';
 import { runIngest, runAnalysis, progress, events } from './ingest/index.ts';
 import { facesAvailable } from './ingest/faces.ts';
+import { exportEstimate, runExport, exportProgress, revealExport } from './export.ts';
 
 ensureDirs(); openDb();
 const PORT = Number(process.env.PORT || 4000);
@@ -45,7 +46,7 @@ app.get('/api/groups', async () => {
 });
 // Files dropped on the library: raw body → media/<folder>/<name>; the client runs a scan afterwards.
 app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_req, body, done) => done(null, body));
-const UP_IMG = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.tif', '.tiff', '.bmp', '.gif']), UP_VID = new Set(['.mp4', '.mov', '.m4v', '.webm', '.mkv', '.avi', '.3gp']), UP_MUS = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg', '.opus']);
+const UP_IMG = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.tif', '.tiff', '.bmp', '.gif', '.avif']), UP_VID = new Set(['.mp4', '.mov', '.m4v', '.webm', '.mkv', '.avi', '.3gp', '.mts', '.m2ts', '.vob', '.mpg', '.mpeg', '.wmv', '.flv', '.ts']), UP_MUS = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg', '.opus', '.wma']);
 app.put<{ Querystring: { folder?: string; name?: string }; Body: Buffer }>('/api/upload', { bodyLimit: 4 * 1024 * 1024 * 1024 }, async (req, reply) => {
   const name = path.basename(String(req.query.name ?? '')).replace(/[\\/:*?"<>|]/g, '_'); const ext = path.extname(name).toLowerCase();
   if (!name || name.startsWith('.')) return reply.code(400).send({ error: 'bad name', detail: 'שם קובץ לא תקין' });
@@ -68,6 +69,19 @@ app.get('/api/ingest/events', (req, reply) => {
   const ping = setInterval(() => reply.raw.write(': ping\n\n'), 15000);
   req.raw.on('close', () => { events.off('event', send); clearInterval(ping); });
 });
+
+// export: a self-contained offline package of the show (player + every photo, video and song it uses)
+app.get('/api/export/estimate', async () => exportEstimate());
+app.get('/api/export/status', async () => exportProgress);
+app.post<{ Body: { dest?: string; zip?: boolean } }>('/api/export', async (req, reply) => {
+  if (exportProgress.running) return reply.code(409).send({ error: 'busy', detail: 'ייצוא כבר רץ' });
+  const body = req.body ?? {};
+  try { const run = runExport({ dest: body.dest, zip: !!body.zip }); run.catch(() => {}); await new Promise(r => setTimeout(r, 50)); }
+  catch (e) { return reply.code(400).send({ error: 'export', detail: (e as Error).message }); }
+  if (exportProgress.phase === 'idle') return reply.code(400).send({ error: 'export', detail: 'הייצוא לא התחיל' });
+  return exportProgress;
+});
+app.post('/api/export/reveal', async (req, reply) => (revealExport() ? { ok: true } : reply.code(404).send({ error: 'not found', detail: 'אין ייצוא להצגה' })));
 
 if (PROD && fs.existsSync(DIST_DIR)) {
   app.register(fastifyStatic, { root: DIST_DIR, prefix: '/', decorateReply: true, cacheControl: true, maxAge: '1h' });

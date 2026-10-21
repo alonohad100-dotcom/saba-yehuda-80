@@ -77,6 +77,13 @@ export function assetDisplay(a: Asset): string {
 }
 
 /* ---------- show (authored data, sacred) ---------- */
+/** What the chapter music does when a slide starts. 'auto' = videos follow settings.videoMusic, everything else continues. */
+export const MusicCue = z.enum(['auto', 'continue', 'duck', 'pause', 'stop', 'restart']);
+export type MusicCue = z.infer<typeof MusicCue>;
+export const MUSIC_CUE_LABEL: Record<MusicCue, string> = { auto: 'אוטומטי', continue: 'ממשיכה', duck: 'מונמכת', pause: 'מושהית', stop: 'נעצרת', restart: 'מתחילה מחדש' };
+export const VideoMusic = z.enum(['pause', 'stop', 'duck', 'continue']);
+export type VideoMusic = z.infer<typeof VideoMusic>;
+export const VIDEO_MUSIC_LABEL: Record<VideoMusic, string> = { pause: 'מושהית', stop: 'נעצרת', duck: 'מונמכת', continue: 'ממשיכה' };
 export const TransitionId = z.enum(['fade', 'dip', 'push', 'zoom', 'wipe', 'blur']);
 export const TRANSITION_LABEL: Record<z.infer<typeof TransitionId>, string> = { fade: 'עמעום', dip: 'דרך שחור', push: 'דחיפה', zoom: 'זום', wipe: 'מחיקה', blur: 'טשטוש' };
 
@@ -91,7 +98,7 @@ const OverlayBase = z.object({
 });
 export const OverlayFont = z.enum(['display', 'ui', 'num']);
 export const Overlay = z.discriminatedUnion('kind', [
-  OverlayBase.extend({ kind: z.literal('text'), text: z.string(), font: OverlayFont.default('display'), size: z.number().min(0.8).max(20).default(4), color: z.string().default('#efe9db'), weight: z.number().default(400), align: z.enum(['right', 'center', 'left']).default('center'), bg: z.enum(['none', 'pill', 'bar', 'box']).default('none'), shadow: z.boolean().default(true), accent: z.boolean().default(false) }),
+  OverlayBase.extend({ kind: z.literal('text'), text: z.string(), font: OverlayFont.default('display'), size: z.number().min(0.8).max(20).default(4), color: z.string().default('#efe9db'), weight: z.number().default(400), align: z.enum(['right', 'center', 'left']).default('center'), bg: z.enum(['none', 'pill', 'bar', 'box']).default('none'), shadow: z.boolean().default(true), accent: z.boolean().default(false), underline: z.boolean().optional() }),
   OverlayBase.extend({ kind: z.literal('symbol'), name: z.string(), color: z.string().default('#d4a84b'), fill: z.boolean().default(false), stroke: z.number().min(0.5).max(4).default(1.6) }),
   OverlayBase.extend({ kind: z.literal('emoji'), char: z.string() }),
   OverlayBase.extend({ kind: z.literal('shape'), shape: z.enum(['rect', 'circle', 'line', 'frame']), color: z.string().default('#d4a84b'), h: z.number().min(0.2).max(100).default(20), radius: z.number().min(0).max(50).default(0), stroke: z.number().min(0.1).max(5).default(0.4) }),
@@ -103,9 +110,15 @@ export type OverlayKind = Overlay['kind'];
 /* ---------- per-slide look, photo frame and caption style ---------- */
 export const Look = z.object({ filter: z.enum(['none', 'bw', 'sepia', 'warm', 'cool', 'faded', 'vivid']).default('none'), vignette: z.number().min(0).max(1).default(0.5), brightness: z.number().min(50).max(150).default(100), contrast: z.number().min(50).max(150).default(100), saturation: z.number().min(0).max(200).default(100) });
 export type Look = z.infer<typeof Look>;
-export const Frame = z.object({ zoom: z.number().min(1).max(3).default(1), rotate: z.number().default(0), flipH: z.boolean().default(false), kenBurnsAmount: z.number().min(0).max(2).default(1) });
+export const Frame = z.object({ zoom: z.number().min(1).max(3).default(1), rotate: z.number().default(0), flipH: z.boolean().default(false), kenBurnsAmount: z.number().min(0).max(2).default(1), fit: z.enum(['auto', 'contain', 'cover']).default('auto') });
 export type Frame = z.infer<typeof Frame>;
-export const CaptionStyle = z.object({ anim: z.enum(['fade', 'rise', 'words', 'letters', 'none']).default('rise'), size: z.number().min(0.5).max(2.5).default(1), position: z.enum(['bottom', 'top', 'center']).default('bottom'), align: z.enum(['right', 'center', 'left']).default('right'), font: OverlayFont.default('display'), box: z.boolean().default(false) });
+export const CaptionStyle = z.object({ anim: z.enum(['fade', 'rise', 'words', 'letters', 'none']).default('rise'), size: z.number().min(0.3).max(6).default(1), position: z.enum(['bottom', 'top', 'center']).default('bottom'), align: z.enum(['right', 'center', 'left']).default('right'), font: OverlayFont.default('display'), box: z.boolean().default(false),
+  x: z.number().min(-20).max(100).optional(), y: z.number().min(-20).max(100).optional(), w: z.number().min(5).max(100).optional(),
+  bold: z.boolean().optional(), underline: z.boolean().optional() }); // x/y set = free placement (% of the stage, top-left of the caption box; drag it on the preview); w = wrapping width %
+/** Per built-in text block (see TEXT_BLOCKS): free position (% of the stage), wrapping width, size multiplier, bold, underline, alignment. */
+export const TextStyle = z.object({ x: z.number().min(-20).max(100).optional(), y: z.number().min(-20).max(100).optional(), w: z.number().min(5).max(100).optional(), size: z.number().min(0.3).max(6).optional(), bold: z.boolean().optional(), underline: z.boolean().optional(), align: z.enum(['right', 'center', 'left']).optional() });
+export type TextStyle = z.infer<typeof TextStyle>;
+export const DEFAULT_CAPTION: z.infer<typeof CaptionStyle> = { anim: 'rise', size: 1, position: 'bottom', align: 'right', font: 'display', box: false };
 export type CaptionStyle = z.infer<typeof CaptionStyle>;
 export function cssFilter(look?: Look): string {
   if (!look) return '';
@@ -132,6 +145,11 @@ const Base = z.object({
   look: Look.optional(),                 // colour filter + adjustments + vignette for the slide's media
   frame: Frame.optional(),               // photo crop/zoom/rotate/flip and Ken Burns amount
   captionStyle: CaptionStyle.optional(),
+  music: MusicCue.optional(),            // what the current music does when this slide starts
+  texts: z.record(z.string(), TextStyle).optional(), // style/position per built-in text block, keyed as in TEXT_BLOCKS
+  musicId: z.string().optional(),        // the slide starts its own song: crossfades from whatever played and continues into the following slides
+  musicStartSec: z.number().optional(),
+  musicLevel: z.number().min(0).max(1).optional(),
 });
 export const CollageLayoutSchema = z.enum(COLLAGE_LAYOUTS);
 
@@ -151,6 +169,18 @@ export const Slide = z.discriminatedUnion('type', [
 ]);
 export type Slide = z.infer<typeof Slide>;
 export type SlideType = Slide['type'];
+/** The built-in text blocks of each slide type: key (into slide.texts), CSS selector inside the rendered slide, Hebrew label. Photo captions are styled by captionStyle instead. */
+export const TEXT_BLOCKS: Partial<Record<SlideType, { key: string; sel: string; label: string }[]>> = {
+  intro: [{ key: 'title', sel: '.intro-name', label: 'שם' }, { key: 'number', sel: '.intro-num', label: 'המספר' }, { key: 'subtitle', sel: '.intro-sub', label: 'כותרת משנה' }],
+  chapter: [{ key: 'eyebrow', sel: '.ch-label .eb', label: 'שורת פתיח' }, { key: 'label', sel: '.ch-label .t', label: 'כותרת' }, { key: 'blurb', sel: '.ch-label .b', label: 'שורת תיאור' }],
+  timeline: [{ key: 'title', sel: '.tt', label: 'כותרת' }],
+  quote: [{ key: 'text', sel: '.q', label: 'הציטוט' }, { key: 'by', sel: '.q-by', label: 'מי אמר' }],
+  video: [{ key: 'name', sel: '.lower .nm', label: 'שם המברך/ת' }, { key: 'relation', sel: '.lower .rel', label: 'קרבה' }],
+  'video-wall': [{ key: 'title', sel: '.wall-title', label: 'כותרת' }],
+  names: [{ key: 'title', sel: '.tt', label: 'כותרת' }],
+  finale: [{ key: 'number', sel: '.fin .n', label: 'המספר' }, { key: 'text', sel: '.fin .t', label: 'שורת סיום' }],
+  black: [{ key: 'caption', sel: '.tiny', label: 'כיתוב' }],
+};
 
 export const Chapter = z.object({
   id: z.string(),
@@ -159,6 +189,7 @@ export const Chapter = z.object({
   musicId: z.string().optional(),      // asset id of a music file
   musicStartSec: z.number().optional(),
   musicLevel: z.number().min(0).max(1).optional(),
+  musicOff: z.boolean().optional(),    // the chapter starts in silence: the previous chapter's music fades out
   defaults: z.object({ seconds: z.number().optional(), transition: TransitionId.optional(), kenBurns: KenBurns.optional() }).optional(),
   locked: z.boolean().optional(),
   auto: z.object({ run: z.string() }).optional(),
@@ -172,13 +203,19 @@ export const Settings = z.object({
   defaultTransition: TransitionId.default('fade'),
   transitionSeconds: z.number().default(0.9),
   duckLevel: z.number().min(0).max(1).default(0.1),
+  videoMusic: VideoMusic.default('pause'),       // what the music does while a video plays (per-slide `music` overrides)
+  musicFadeSec: z.number().min(0.2).max(6).default(1.5), // fade length when music pauses or stops
   musicLevel: z.number().min(0).max(1).default(0.7),
   safeMarginPct: z.number().default(5),
   grainOnArchival: z.boolean().default(true),
+  showYears: z.boolean().default(false),         // print the year next to photo captions / as pair tags (off: years are kept only for sorting)
+  photoFit: z.enum(['contain', 'cover']).default('contain'),   // contain = every photo is shown whole (no cropping) over a blurred copy of itself; cover = full-bleed, cropped
   archivalBeforeYear: z.number().default(1990),
   theme: z.string().default('midnight-gold'),   // colour theme id (shared/themes.ts); chapters and slides may override
 });
 export type Settings = z.infer<typeof Settings>;
+/** The slide's effective music cue. */
+export function resolveMusicCue(s: Slide, settings: Settings): Exclude<MusicCue, 'auto'> { const cue = s.music ?? 'auto'; if (cue !== 'auto') return cue; return s.type === 'video' ? settings.videoMusic : 'continue'; }
 
 export const Show = z.object({
   version: z.literal(1),
@@ -187,6 +224,17 @@ export const Show = z.object({
   chapters: z.array(Chapter),
 });
 export type Show = z.infer<typeof Show>;
+export interface TrackRef { musicId: string; startSec: number; level?: number; from: 'slide' | 'chapter' }
+/** The music that applies when slide `s` of chapter `c` starts: the latest slide song at or before it, else the chapter's song, else the nearest earlier chapter's (a chapter without a song continues the previous one). A silent chapter or an earlier 'stop' cue breaks the chain. Without `s`, the music at the end of chapter `c`. */
+export function trackAt(show: Show, c: Chapter, s?: Slide): TrackRef | null {
+  const ci = show.chapters.findIndex(x => x.id === c.id);
+  for (let k = ci; k >= 0; k--) {
+    const ch = show.chapters[k]; const start = k === ci && s ? ch.slides.findIndex(x => x.id === s.id) : ch.slides.length - 1;
+    for (let j = start; j >= 0; j--) { const sl = ch.slides[j]; if (sl.musicId) return { musicId: sl.musicId, startSec: sl.musicStartSec ?? 0, level: sl.musicLevel, from: 'slide' }; if (sl.music === 'stop' && sl.id !== s?.id) return null; }
+    if (ch.musicOff) return null; if (ch.musicId) return { musicId: ch.musicId, startSec: ch.musicStartSec ?? 0, level: ch.musicLevel, from: 'chapter' };
+  }
+  return null;
+}
 
 export function defaultShow(): Show {
   return Show.parse({
@@ -201,7 +249,7 @@ export function defaultShow(): Show {
 
 /* ---------- helpers shared by editor + show ---------- */
 export const TYPE_LABEL: Record<SlideType, string> = {
-  intro: 'פתיחה', chapter: 'פרק', photo: 'תמונה', 'photo-pair': 'זוג תמונות', collage: 'קולאז׳', timeline: 'ציר זמן',
+  intro: 'פתיחה', chapter: 'כותרת פרק', photo: 'תמונה', 'photo-pair': 'זוג תמונות', collage: 'קולאז׳', timeline: 'ציר זמן',
   quote: 'ציטוט', video: 'ברכה', 'video-wall': 'קיר ברכות', names: 'שמות', finale: 'סיום', black: 'שחור',
 };
 export const TYPE_DEFAULT_SECONDS: Record<SlideType, number> = {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Undo2, Redo2, Settings, History, HardDriveDownload, Play, MonitorSpeaker, HelpCircle, Plus, Save, Sparkles, Palette, BookOpen, MoreHorizontal } from 'lucide-react';
+import { Undo2, Redo2, Settings, History, HardDriveDownload, Play, MonitorSpeaker, HelpCircle, Plus, Save, Sparkles, Palette, BookOpen, MoreHorizontal, PackageCheck } from 'lucide-react';
 import { useStore } from 'zustand';
 import { ThemeGrid, ThemeSwatch } from './ThemePicker';
 import { ChromeToggle } from './ChromeToggle';
@@ -41,6 +41,7 @@ export function TopBar() {
             {themeOpen && <><div style={{ position: 'fixed', inset: 0, zIndex: 39 }} onClick={() => setThemeOpen(false)} /><div className="theme-pop"><div className="row" style={{ marginBottom: 8 }}><b>ערכת צבעים של המצגת</b><span className="muted small grow">משנה את כל המצגת מיד · בפרק או בשקופית אפשר לבחור ערכה אחרת · במצגת: <kbd>T</kbd> מחליף ערכה חי</span></div><ThemeGrid value={show.settings.theme} onChange={id => { if (id) { updateSettings({ theme: id }); toast(`ערכת צבעים: ${id}`, 'ok'); } }} /></div></>}
           </div>
           <button className="btn tip" data-tour="versions" data-tip="היסטוריית גרסאות" onClick={() => openDialog('versions')}><History /><span className="lbl">גרסאות</span></button>
+          <button className="btn tip" data-tour="export" data-tip="ייצוא המצגת עם כל התמונות, הסרטונים והמוזיקה לתיקייה או לדיסק און קי" onClick={() => openDialog('export')}><PackageCheck /><span className="lbl">ייצוא</span></button>
           <button className="btn ghost icon tip" data-tour="settings" data-tip="הגדרות המצגת" onClick={() => openDialog('settings')}><Settings /></button>
           <ChromeToggle />
           <button className="btn tip" data-tour="guide" data-tip="המדריך המלא: כל היכולות עם הדגמות חיות, וסיור מודרך" onClick={() => openGuide()}><BookOpen /><span className="lbl">מדריך</span></button>
@@ -51,6 +52,7 @@ export function TopBar() {
           {more && <><div style={{ position: 'fixed', inset: 0, zIndex: 39 }} onClick={() => setMore(false)} /><div className="menu" style={{ top: '110%', insetInlineEnd: 0 }}>
             <button onClick={() => { setMore(false); setThemeOpen(true); }}><Palette /> ערכת צבעים של המצגת</button>
             <button onClick={() => { setMore(false); openDialog('versions'); }}><History /> גרסאות</button>
+            <button onClick={() => { setMore(false); openDialog('export'); }}><PackageCheck /> ייצוא המצגת</button>
             <button onClick={() => { setMore(false); openDialog('settings'); }}><Settings /> הגדרות</button>
             <button onClick={() => { setMore(false); openGuide(); }}><BookOpen /> מדריך</button>
             <button onClick={() => { setMore(false); openDialog('help'); }}><HelpCircle /> עזרה</button>

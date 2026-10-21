@@ -11,9 +11,13 @@
     "defaultTransition": "fade",
     "transitionSeconds": 0.9,
     "duckLevel": 0.1,
+    "videoMusic": "pause",
+    "musicFadeSec": 1.5,
     "musicLevel": 0.7,
     "safeMarginPct": 5,
     "grainOnArchival": true,
+    "showYears": false,
+    "photoFit": "contain",
     "archivalBeforeYear": 1990,
     "theme": "midnight-gold"
   },
@@ -21,14 +25,1232 @@
     {
       "id": "ch-open",
       "title": "פתיחה",
+      "musicId": "e2a10d0131d3357734f7",
+      "musicStartSec": 0,
+      "theme": "sea",
       "slides": [
         {
           "id": "sl-intro",
-          "seconds": 8,
+          "seconds": 4,
           "type": "intro",
-          "title": "יהודה",
+          "title": "אבא,סבא יהודה\nחוגג",
           "subtitle": "חוגגים 80 · אוקטובר 2026",
           "number": "80"
+        },
+        {
+          "id": "s-l6a874d",
+          "seconds": 6,
+          "captionStyle": {
+            "anim": "rise",
+            "size": 2.5,
+            "position": "bottom",
+            "align": "center",
+            "font": "display",
+            "box": false,
+            "x": 54.3,
+            "y": 5,
+            "bold": true
+          },
+          "type": "photo",
+          "assetId": "bbbef631bfaeb4a16356",
+          "caption": "קבלו את \"יהודי\" ",
+          "year": 2013,
+          "kenBurns": "out",
+          "focal": [
+            83,
+            90
+          ],
+          "grain": true
+        },
+        {
+          "id": "s-gqdwwjz",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "efa116a6a464dd645201",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            9
+          ]
+        },
+        {
+          "id": "s-y8j2u0m",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "b66d7f7046af60039b44",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            9
+          ]
+        },
+        {
+          "id": "s-7qd4ztq",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "2261911edd67345d1923",
+          "caption": "",
+          "year": 2015,
+          "kenBurns": "in",
+          "focal": [
+            6,
+            50
+          ]
+        },
+        {
+          "id": "s-nfniets",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "2b71430b72ab598c89fa",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            34
+          ]
+        },
+        {
+          "id": "s-dl8ses7",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "936cf9743ea11e57b188",
+          "caption": "",
+          "year": 2007,
+          "kenBurns": "in",
+          "focal": [
+            31,
+            50
+          ]
+        },
+        {
+          "id": "s-u5kb5dl",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "3a9a8405e8d4ddcea0cb",
+          "caption": "",
+          "year": 2007,
+          "kenBurns": "in",
+          "focal": [
+            25,
+            50
+          ]
+        },
+        {
+          "id": "s-qf31tjl",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "da3c78d568b7d11a0310",
+          "caption": "",
+          "year": 2007,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            13
+          ]
+        },
+        {
+          "id": "s-ecgwn9i",
+          "transition": "dip",
+          "seconds": 6,
+          "overlays": [],
+          "type": "photo",
+          "assetId": "1e7bf8d6f453224701bd",
+          "caption": "",
+          "year": 2009,
+          "kenBurns": "in",
+          "focal": [
+            84,
+            77
+          ]
+        },
+        {
+          "id": "s-jer55mv",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "5b34926f136890c73439",
+          "caption": "",
+          "year": 2009,
+          "kenBurns": "in",
+          "focal": [
+            13,
+            50
+          ]
+        },
+        {
+          "id": "s-jycnamu",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "2fdda672de85992bd90d",
+          "caption": "",
+          "year": 2009,
+          "kenBurns": "in",
+          "focal": [
+            38,
+            50
+          ]
+        },
+        {
+          "id": "s-3kxr4c8",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "dd89fc64f86cb0a1f81b",
+          "caption": "",
+          "year": 2007,
+          "kenBurns": "in",
+          "focal": [
+            31,
+            50
+          ]
+        },
+        {
+          "id": "s-6bftsed",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "339da40ab113594803e8",
+          "caption": "",
+          "year": 2019,
+          "kenBurns": "in",
+          "focal": [
+            34,
+            50
+          ]
+        },
+        {
+          "id": "s-xsx9ucl",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "1045be2acf4da29a5159",
+          "caption": "",
+          "year": 2019,
+          "kenBurns": "in",
+          "focal": [
+            13,
+            50
+          ]
+        },
+        {
+          "id": "s-h0bnuf0",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "75ae6bb87022a35ac7a9",
+          "caption": "",
+          "year": 2019,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            22
+          ]
+        },
+        {
+          "id": "s-ett7d7y",
+          "transition": "fade",
+          "look": {
+            "filter": "none",
+            "vignette": 0.5,
+            "brightness": 100,
+            "contrast": 100,
+            "saturation": 100
+          },
+          "music": "stop",
+          "type": "video",
+          "assetId": "a38f4097547053a9b70d",
+          "name": "מיה ואמה (מומחיות בלהתחמק מקקטוסים)",
+          "relation": ""
+        },
+        {
+          "id": "s-komggeo",
+          "seconds": 7,
+          "musicId": "c469985aef4612464778",
+          "musicStartSec": 0,
+          "type": "quote",
+          "text": "בית זה חיך של ילד, אהבת אמא, שמחה של אבא, הביחד של המשפחה\n(מנחם בגין)",
+          "by": ""
+        },
+        {
+          "id": "s-iot3hyq",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "1a5720a1c8e4647b76d7",
+          "caption": "",
+          "year": 2020,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            13
+          ]
+        },
+        {
+          "id": "s-cn6r96g",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "510398234cddd3b31c05",
+          "caption": "",
+          "year": 2015,
+          "kenBurns": "in",
+          "focal": [
+            6,
+            50
+          ]
+        },
+        {
+          "id": "s-v73x68q",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "b06eb2602ede8f760fbf",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            12
+          ]
+        },
+        {
+          "id": "s-srjr99l",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "280b1980678392541772",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            39
+          ]
+        },
+        {
+          "id": "s-dkhyyi8",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "8d67e4aecb03707b5a57",
+          "caption": "",
+          "year": 2015,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            10
+          ]
+        },
+        {
+          "id": "s-srcvmb4",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "4f4082dadef56d5bc20a",
+          "caption": "",
+          "year": 2015,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            11
+          ]
+        },
+        {
+          "id": "s-xlxc3iy",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "aae8cddb2e404a2db636",
+          "caption": "",
+          "year": 2015,
+          "kenBurns": "in",
+          "focal": [
+            6,
+            50
+          ]
+        },
+        {
+          "id": "s-qv9jfz5",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "77508067922e59959c5c",
+          "caption": "",
+          "year": 2020,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            38
+          ]
+        },
+        {
+          "id": "s-0mljosf",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "ffdc89ede565b6204519",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            24
+          ]
+        },
+        {
+          "id": "s-zyq6xn0",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "09cf8b85f217652b60c9",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            5
+          ]
+        },
+        {
+          "id": "s-80m2o1h",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "50e15dfbae2d60872eec",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            6
+          ]
+        },
+        {
+          "id": "s-zoy2xbl",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "fdf2bbdfee3c120d09e3",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            29
+          ]
+        },
+        {
+          "id": "s-ew71sjo",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "36705fca6e13725d2f82",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            34
+          ]
+        },
+        {
+          "id": "s-85py42r",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "de83fbfa84198e7c7fbd",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            22
+          ]
+        },
+        {
+          "id": "s-ajb2mrk",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "8c7053afdaa951421086",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            21
+          ]
+        },
+        {
+          "id": "s-9tunr26",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "26f0d1305c8b48ba984b",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            11
+          ]
+        },
+        {
+          "id": "s-jy4x5ey",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "c45aecb7b34c223a2922",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            41
+          ]
+        },
+        {
+          "id": "s-qu8mm5e",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "4bf30d37d8ce3884299c",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            16
+          ]
+        },
+        {
+          "id": "s-cvgsheq",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "9f942d4c10fed56ab6f7",
+          "caption": "",
+          "year": 2017,
+          "kenBurns": "in",
+          "focal": [
+            13,
+            50
+          ]
+        },
+        {
+          "id": "s-y3o7tfh",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "1eed4b5207f9b6de0386",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            8
+          ]
+        },
+        {
+          "id": "s-um4bh1d",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "59d2c74d7911df288381",
+          "caption": "",
+          "year": 2011,
+          "kenBurns": "in",
+          "focal": [
+            0,
+            57
+          ]
+        },
+        {
+          "id": "s-ec9jv9i",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "7ff4beb3fcffb5538ebb",
+          "caption": "",
+          "year": 2014,
+          "kenBurns": "in",
+          "focal": [
+            17,
+            50
+          ]
+        },
+        {
+          "id": "s-n6o3o1p",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "c63c31199a2ea9e2e813",
+          "caption": "",
+          "year": 2014,
+          "kenBurns": "in",
+          "focal": [
+            17,
+            50
+          ]
+        },
+        {
+          "id": "s-o42g8e0",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "093401ccfd7ba21d7e9c",
+          "caption": "",
+          "year": 2014,
+          "kenBurns": "in",
+          "focal": [
+            7,
+            50
+          ]
+        },
+        {
+          "id": "s-7br1s6p",
+          "music": "stop",
+          "type": "video",
+          "assetId": "7cd42a697861b24f3b11",
+          "name": "תמרה (עילוי בתחום המשחק, כרגע בין הצגות)",
+          "relation": ""
+        },
+        {
+          "id": "s-11k5krh",
+          "music": "stop",
+          "type": "video",
+          "assetId": "3ff6dea57558f859ca93",
+          "name": "איתמר (מר עולם ב\"דימוס\")",
+          "relation": ""
+        },
+        {
+          "id": "s-3c1foh7",
+          "seconds": 8,
+          "musicId": "f57969bd5bf608e60444",
+          "musicStartSec": 0,
+          "type": "names",
+          "title": "המשפחה",
+          "people": []
+        },
+        {
+          "id": "s-uapys8m",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "03fe61dac5b4c3729186",
+          "caption": "",
+          "year": 2007,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            20
+          ]
+        },
+        {
+          "id": "s-6g5fssz",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "7b3b85fb30b854a04b77",
+          "caption": "",
+          "year": 2005,
+          "kenBurns": "in",
+          "focal": [
+            16,
+            50
+          ]
+        },
+        {
+          "id": "s-hb9opoz",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "7a96b4b138c8f561f3a9",
+          "caption": "",
+          "year": 2021,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            38
+          ]
+        },
+        {
+          "id": "s-gp9chjb",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "a5aa55264792259df75f",
+          "caption": "",
+          "year": 2004,
+          "kenBurns": "in",
+          "focal": [
+            38,
+            50
+          ]
+        },
+        {
+          "id": "s-o6nj18a",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "2e886b68c6479201c7f6",
+          "caption": "",
+          "year": 2005,
+          "kenBurns": "in",
+          "focal": [
+            13,
+            50
+          ]
+        },
+        {
+          "id": "s-t4kt1j3",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "b52cb2824b30c41973f0",
+          "caption": "",
+          "year": 2020,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            28
+          ]
+        },
+        {
+          "id": "s-2q0stwv",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "dc229fc5ac9b27dd5523",
+          "caption": "",
+          "year": 2007,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            0
+          ]
+        },
+        {
+          "id": "s-xfj6fvj",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "2585bfe5d3fe378135f9",
+          "caption": "",
+          "year": 2020,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            31
+          ]
+        },
+        {
+          "id": "s-z074cga",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "9af2d6adceb2777cb325",
+          "caption": "",
+          "year": 2020,
+          "kenBurns": "in",
+          "focal": [
+            13,
+            50
+          ]
+        },
+        {
+          "id": "s-vpdwnmc",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "519a40268fec7c201154",
+          "caption": "",
+          "year": 2020,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            13
+          ]
+        },
+        {
+          "id": "s-7w87m6n",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "b762f5505a5d95ca08aa",
+          "caption": "",
+          "year": 2019,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            22
+          ]
+        },
+        {
+          "id": "s-u18pzxr",
+          "type": "video",
+          "assetId": "474c3452d9a370be4a8b",
+          "name": "IMG_0065",
+          "relation": ""
+        },
+        {
+          "id": "s-mq5zdk8",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "e7aed6a92f12a9d6990f",
+          "caption": "",
+          "year": 2017,
+          "kenBurns": "in",
+          "focal": [
+            38,
+            50
+          ]
+        },
+        {
+          "id": "s-li58spj",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "5361ca10e67b661d448c",
+          "caption": "",
+          "year": 2016,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            13
+          ]
+        },
+        {
+          "id": "s-e7tysrf",
+          "type": "video",
+          "assetId": "f5327abb92b1c2a8ac92",
+          "name": "IMG_0005",
+          "relation": ""
+        },
+        {
+          "id": "s-2ffwydi",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "a699ca5df5b22b6f1a17",
+          "caption": "",
+          "year": 2015,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            38
+          ]
+        },
+        {
+          "id": "s-z1ieuhx",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "e09798c404565a4d7b4d",
+          "caption": "",
+          "year": 2016,
+          "kenBurns": "in",
+          "focal": [
+            29,
+            50
+          ]
+        },
+        {
+          "id": "s-vw9mwf4",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "b9f640b7a14ceb6f4dec",
+          "caption": "",
+          "year": 2012,
+          "kenBurns": "in",
+          "focal": [
+            25,
+            50
+          ]
+        },
+        {
+          "id": "s-lk3xsyx",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "1968715a6d1427585562",
+          "caption": "",
+          "year": 2014,
+          "kenBurns": "in",
+          "focal": [
+            1,
+            50
+          ]
+        },
+        {
+          "id": "s-r7vqitu",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "17b6be4f275a4dd2e1bd",
+          "caption": "",
+          "year": 2012,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            13
+          ]
+        },
+        {
+          "id": "s-ox5mahv",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "45288aeb85ee82b126a6",
+          "caption": "",
+          "year": 2009,
+          "kenBurns": "in",
+          "focal": [
+            26,
+            50
+          ]
+        },
+        {
+          "id": "s-86n5csm",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "723f39d0a4dc7fac63e9",
+          "caption": "",
+          "year": 2008,
+          "kenBurns": "in",
+          "focal": [
+            28,
+            50
+          ]
+        },
+        {
+          "id": "s-8ih4fhq",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "d86b389cbb331991a816",
+          "caption": "",
+          "year": 2009,
+          "kenBurns": "in",
+          "focal": [
+            38,
+            50
+          ]
+        },
+        {
+          "id": "s-bgp5lxf",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "ebf1f26d07039e53f37a",
+          "caption": "",
+          "year": 2009,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            13
+          ]
+        },
+        {
+          "id": "s-m2sie3k",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "b0fe7af848c11ab38d0c",
+          "caption": "",
+          "year": 2008,
+          "kenBurns": "in",
+          "focal": [
+            38,
+            50
+          ]
+        },
+        {
+          "id": "s-0pfu65s",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "066e7c20559262140c0b",
+          "caption": "",
+          "year": 2009,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            13
+          ]
+        },
+        {
+          "id": "s-xmuds0m",
+          "texts": {
+            "name": {
+              "x": 23.2,
+              "y": 81.2
+            }
+          },
+          "type": "video",
+          "assetId": "87327210b65313fc4327",
+          "name": "יעל (מחברת רב המכר \"כיצד לנצל נכון את הסיבוס\")",
+          "relation": ""
+        },
+        {
+          "id": "s-wayydi2",
+          "type": "video",
+          "assetId": "473f17425398c37df3d8",
+          "name": "הגר (מחברת רב המכר \"ימי מילואים כהכנסה עיקרית\")",
+          "relation": ""
+        },
+        {
+          "id": "s-egvnt8n",
+          "seconds": 6,
+          "musicId": "2e22d780a8a1900329f3",
+          "musicStartSec": 0,
+          "type": "photo",
+          "assetId": "59f660d204f9045b1fdd",
+          "caption": "",
+          "year": 2019,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            35
+          ]
+        },
+        {
+          "id": "s-4fihqhu",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "e5e6a422508981183e9d",
+          "caption": "",
+          "year": 2008,
+          "kenBurns": "in",
+          "focal": [
+            31,
+            50
+          ]
+        },
+        {
+          "id": "s-exsmgym",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "fd60d735b4fec4ed69f0",
+          "caption": "",
+          "year": 2008,
+          "kenBurns": "in",
+          "focal": [
+            13,
+            50
+          ]
+        },
+        {
+          "id": "s-367uizu",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "742a9d1e22dec176e5c7",
+          "caption": "",
+          "year": 2008,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            38
+          ]
+        },
+        {
+          "id": "s-yzn9pao",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "2c956d1229c4f5f61425",
+          "caption": "",
+          "year": 2008,
+          "kenBurns": "in",
+          "focal": [
+            13,
+            50
+          ]
+        },
+        {
+          "id": "s-dcsvtdp",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "15fe7d87b6c955404979",
+          "caption": "",
+          "year": 2017,
+          "kenBurns": "in",
+          "focal": [
+            38,
+            50
+          ]
+        },
+        {
+          "id": "s-wc524v1",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "1eb552949c012e845b62",
+          "caption": "",
+          "year": 2020,
+          "kenBurns": "in",
+          "focal": [
+            25,
+            50
+          ]
+        },
+        {
+          "id": "s-tby4n19",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "452ef7b1e4f92a3383c7",
+          "caption": "",
+          "year": 2017,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            38
+          ]
+        },
+        {
+          "id": "s-rk03hxm",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "51f630e45d9f2103499a",
+          "caption": "",
+          "year": 2016,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            16
+          ]
+        },
+        {
+          "id": "s-7r6mh8w",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "cc3e5a1b45bdfcb09e49",
+          "caption": "",
+          "year": 2024,
+          "kenBurns": "in",
+          "focal": [
+            33,
+            50
+          ]
+        },
+        {
+          "id": "s-5zniwhf",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "4732eda4cefd1977d6fa",
+          "caption": "",
+          "year": 2024,
+          "kenBurns": "in",
+          "focal": [
+            14,
+            50
+          ]
+        },
+        {
+          "id": "s-isoqudm",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "19bc4caeb99b387f50dd",
+          "caption": "",
+          "year": 2024,
+          "kenBurns": "in",
+          "focal": [
+            29,
+            50
+          ]
+        },
+        {
+          "id": "s-9z6zbni",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "b762f5505a5d95ca08aa",
+          "caption": "",
+          "year": 2019,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            22
+          ]
+        },
+        {
+          "id": "s-q8vlciv",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "ed0a2c05ac2085302fb0",
+          "caption": "",
+          "year": 2024,
+          "kenBurns": "in",
+          "focal": [
+            25,
+            50
+          ]
+        },
+        {
+          "id": "s-u2zyxak",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "692ea574b4cba8c741f9",
+          "caption": "",
+          "year": 2024,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            12
+          ]
+        },
+        {
+          "id": "s-5ko9l8n",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "aa2f2c82695448e4b6e4",
+          "caption": "",
+          "year": 2006,
+          "kenBurns": "in",
+          "focal": [
+            13,
+            50
+          ]
+        },
+        {
+          "id": "s-6mjzvq3",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "c38b604a57ecb5d32731",
+          "caption": "",
+          "year": 2020,
+          "kenBurns": "in",
+          "focal": [
+            20,
+            50
+          ]
+        },
+        {
+          "id": "s-o1d4h38",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "477bcfcd02352e89088a",
+          "caption": "",
+          "year": 2008,
+          "kenBurns": "in",
+          "focal": [
+            31,
+            50
+          ]
+        },
+        {
+          "id": "s-p8j5iej",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "88b971c45286a807384a",
+          "caption": "",
+          "year": 2007,
+          "kenBurns": "in",
+          "focal": [
+            38,
+            50
+          ]
+        },
+        {
+          "id": "s-tfkiz74",
+          "seconds": 6,
+          "type": "photo",
+          "assetId": "db093b8f5c5e309c84d1",
+          "caption": "",
+          "year": 2019,
+          "kenBurns": "in",
+          "focal": [
+            50,
+            38
+          ]
+        },
+        {
+          "id": "s-5vf56kc",
+          "type": "video",
+          "assetId": "a1ad8dd988c7238fe204",
+          "name": "נדב (במיונים לנבחרת ישראל בכדורגל)",
+          "relation": ""
+        },
+        {
+          "id": "s-e7cjlc8",
+          "type": "video",
+          "assetId": "13be65dcc1d3dde21f23",
+          "name": "יאיר ואילנה (JUST GOT MARRIED)",
+          "relation": ""
+        },
+        {
+          "id": "s-80fj5lc",
+          "seconds": 12,
+          "type": "finale",
+          "text": "עד 120, אבא",
+          "number": "80"
+        },
+        {
+          "id": "s-qkfhxgg",
+          "seconds": 6,
+          "type": "chapter",
+          "label": "אי שם בארץ רחוקה ...",
+          "blurb": "",
+          "eyebrow": "לפני סיום ..."
+        },
+        {
+          "id": "s-6pbfxzc",
+          "type": "video",
+          "assetId": "41b3c49d46342c1e7058",
+          "name": "גיא ניצן והטעויות",
+          "relation": ""
         }
       ]
     }

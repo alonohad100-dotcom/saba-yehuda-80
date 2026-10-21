@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Play, RotateCcw, Tag, Settings, History, HardDriveDownload, HelpCircle, Sun, Moon } from 'lucide-react';
+import { X, Play, RotateCcw, Tag, Settings, History, HardDriveDownload, HelpCircle, Sun, Moon, PackageCheck, FolderOpen, Usb, AlertTriangle } from 'lucide-react';
 import { useChrome } from '@/chrome';
 import { useUi } from './ui';
 import { useShow, saveNow } from '@/store/show';
 import { useLibrary } from '@/store/library';
-import { api, ingestEvents, type IngestProgress } from '@/api';
+import { api, ingestEvents, type IngestProgress, type ExportEstimate, type ExportProgress } from '@/api';
 import { toast } from '@/store/toast';
-import { fmtTime, Show as ShowSchema, TRANSITION_LABEL } from '@shared/model';
+import { fmtTime, Show as ShowSchema, TRANSITION_LABEL, VIDEO_MUSIC_LABEL } from '@shared/model';
 import { AutoShowDialog } from './AutoShowDialog';
 import { ThemeGrid } from './ThemePicker';
 
@@ -23,6 +23,7 @@ export function Dialogs() {
   if (dialog === 'versions') return <VersionsDialog onClose={close} />;
   if (dialog === 'ingest') return <IngestDialog onClose={close} />;
   if (dialog === 'help') return <HelpDialog onClose={close} />;
+  if (dialog === 'export') return <ExportDialog onClose={close} />;
   return null;
 }
 
@@ -30,6 +31,60 @@ export function Dialogs() {
 function ChromeChoice() {
   const theme = useChrome(s => s.theme); const set = useChrome(s => s.set);
   return <div className="row" style={{ gap: 10 }}><div className="seg"><button aria-pressed={theme === 'light'} onClick={() => set('light')}><Sun /> בהיר</button><button aria-pressed={theme === 'dark'} onClick={() => set('dark')}><Moon /> כהה</button></div><span className="muted small">משנה רק את העורך, המציג והמדריך. המצגת עצמה נשארת בערכת הצבעים שלה.</span></div>;
+}
+
+const mb = (b?: number) => b == null ? '?' : b >= 1073741824 ? `${(b / 1073741824).toFixed(1)} GB` : `${Math.max(1, Math.round(b / 1048576))} MB`;
+
+/** Export the whole show (player + every photo, video and song it uses) as an offline folder, optionally zipped, to this disk or a USB drive. */
+function ExportDialog({ onClose }: { onClose: () => void }) {
+  const [est, setEst] = useState<ExportEstimate | null>(null); const [err, setErr] = useState('');
+  const [dest, setDest] = useState(''); const [custom, setCustom] = useState(''); const [zip, setZip] = useState(false);
+  const [p, setP] = useState<ExportProgress | null>(null);
+  useEffect(() => { void saveNow().then(() => api.exportEstimate()).then(e => { setEst(e); setDest(e.defaultDest); }).catch(e => setErr((e as Error).message)); void api.exportStatus().then(s => { if (s.running) setP(s); }).catch(() => {}); }, []);
+  useEffect(() => { if (!p?.running) return; const t = setInterval(() => { void api.exportStatus().then(s => { setP(s); if (!s.running) { if (s.phase === 'done') toast('הייצוא הסתיים', 'ok'); else if (s.phase === 'error') toast('הייצוא נכשל: ' + s.error, 'error'); } }); }, 400); return () => clearInterval(t); }, [p?.running]);
+  const target = dest === '__custom__' ? custom.trim() : dest;
+  const free = !est ? undefined : dest === est.defaultDest ? est.defaultFree : est.drives.find(d => d.root === dest)?.free;
+  const need = est ? est.bytes * (zip ? 2 : 1) : 0; const tight = free != null && free < need;
+  const start = async () => { setErr(''); try { await saveNow(); setP(await api.startExport({ dest: target || undefined, zip })); } catch (e) { setErr((e as Error).message.replace(/^\d+ [\w ]+? /, '')); } };
+  const busy = !!p?.running; const done = p?.phase === 'done'; const pct = p && p.totalBytes ? Math.min(100, Math.round(p.bytes / p.totalBytes * 100)) : 0;
+  return (
+    <Dialog title="ייצוא המצגת" icon={<PackageCheck />} onClose={onClose} wide footer={<>
+      <span className="muted small grow" style={{ textAlign: 'start' }}>הייצוא שומר את המצגת כפי שהיא עכשיו. שינויים אחרי הייצוא דורשים ייצוא חדש.</span>
+      {done && <button className="btn" onClick={() => void api.revealExport().catch(e => toast((e as Error).message, 'error'))}><FolderOpen /> פתח את התיקייה</button>}
+      <button className="btn primary" disabled={!est || busy || !target || tight || !est.dist} onClick={() => void start()}><PackageCheck /> {busy ? (p?.phase === 'zip' ? 'יוצר ZIP…' : 'מייצא…') : done ? 'ייצא שוב' : 'ייצא'}</button>
+    </>}>
+      {!est && !err && <div className="muted">מחשב מה ייכנס לייצוא…</div>}
+      {est && <>
+        <div className="statgrid">
+          <div className="stat"><div className="v">{est.slides}</div><div className="l">שקופיות · {fmtTime(est.seconds)}</div></div>
+          <div className="stat"><div className="v">{est.photos}</div><div className="l">תמונות</div></div>
+          <div className="stat"><div className="v">{est.videos}</div><div className="l">סרטונים</div></div>
+          <div className="stat"><div className="v">{est.music}</div><div className="l">שירים</div></div>
+          <div className="stat"><div className="v">{mb(est.bytes)}</div><div className="l">גודל</div></div>
+        </div>
+        <p className="muted small" style={{ margin: '12px 0' }}>נוצרת תיקייה אחת עם המצגת, כל התמונות, הסרטונים והמוזיקה שבה, ונגן שעובד בלי אינטרנט ובלי להתקין כלום. במחשב Windows: לחיצה כפולה על <b>START-SHOW.bat</b>.</p>
+        {est.missing.length > 0 && <div className="check warn" style={{ cursor: 'default', marginBottom: 12 }}><AlertTriangle /> {est.missing.length} קבצים חסרים ולא ייכנסו: {est.missing.slice(0, 3).join(' · ')}{est.missing.length > 3 ? ' …' : ''}</div>}
+        {!est.dist && <div className="check bad" style={{ cursor: 'default', marginBottom: 12 }}>האפליקציה לא בנויה. הריצו npm run build.</div>}
+        <div className="field"><label>לאן לייצא</label>
+          <div className="seg full">
+            <button aria-pressed={dest === est.defaultDest} onClick={() => setDest(est.defaultDest)} disabled={busy}>תיקיית הייצוא במחשב</button>
+            {est.drives.map(d => <button key={d.root} aria-pressed={dest === d.root} onClick={() => setDest(d.root)} disabled={busy} title={d.free != null ? `פנוי ${mb(d.free)}` : ''}><Usb /> <span className="ltr">{d.root}</span></button>)}
+            <button aria-pressed={dest === '__custom__'} onClick={() => setDest('__custom__')} disabled={busy}>תיקייה אחרת</button>
+          </div>
+          {dest === '__custom__' ? <input className="ltr" value={custom} onChange={e => setCustom(e.target.value)} placeholder="C:\Users\...\Desktop" disabled={busy} /> : <span className="muted small ltr" style={{ textAlign: 'start' }}>{target}{free != null ? `  ·  פנוי ${mb(free)}` : ''}</span>}
+          {tight && <span className="small" style={{ color: 'var(--bad)' }}>אין מספיק מקום: צריך {mb(need)}, פנוי {mb(free)}.</span>}
+        </div>
+        <label className="chk"><input type="checkbox" checked={zip} onChange={e => setZip(e.target.checked)} disabled={busy} /> גם קובץ ZIP אחד (נוח להעברה ולשליחה)</label>
+      </>}
+      {p && p.phase !== 'idle' && <div style={{ marginTop: 12 }}>
+        <div className="row" style={{ justifyContent: 'space-between' }}><b>{p.phase === 'copy' ? 'מעתיק קבצים…' : p.phase === 'zip' ? 'יוצר קובץ ZIP…' : p.phase === 'done' ? 'הייצוא הסתיים' : 'הייצוא נכשל'}</b><span className="num muted small">{p.done}/{p.total} · {mb(p.bytes)} / {mb(p.totalBytes)}</span></div>
+        <div className="progress" style={{ height: 6, background: 'var(--line)', borderRadius: 3, overflow: 'hidden', margin: '6px 0' }}><i style={{ display: 'block', height: '100%', width: `${p.phase === 'done' ? 100 : pct}%`, background: p.phase === 'error' ? 'var(--bad)' : 'var(--accent)', transition: 'width .3s' }} /></div>
+        {done && <div className="small" style={{ lineHeight: 1.7 }}>התיקייה: <span className="ltr">{p.dir}</span>{p.zip && <><br />ZIP: <span className="ltr">{p.zip}</span></>}<br />להפעלה: לחיצה כפולה על <b>START-SHOW.bat</b> בתוך התיקייה, במחשב הזה או בכל מחשב Windows אחר.</div>}
+        {p.phase === 'error' && <div className="small" style={{ color: 'var(--bad)' }}>{p.error}</div>}
+      </div>}
+      {err && <div className="small" style={{ color: 'var(--bad)', marginTop: 10 }}>{err}</div>}
+    </Dialog>
+  );
 }
 
 function SettingsDialog({ onClose }: { onClose: () => void }) {
@@ -51,8 +106,12 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
       <div className="field"><label>מעבר ברירת מחדל</label><div className="seg full">{(Object.entries(TRANSITION_LABEL) as [typeof st.defaultTransition, string][]).map(([v, l]) => <button key={v} aria-pressed={st.defaultTransition === v} onClick={() => updS({ defaultTransition: v })}>{l}</button>)}</div></div>
       <h4 style={{ margin: '10px 0' }}>שמע</h4>
       <R label="עוצמת מוזיקה" k="musicLevel" min={0} max={1} step={.05} fmt={v => `${Math.round(v * 100)}%`} />
-      <R label="עוצמת מוזיקה בזמן ברכה (ducking)" k="duckLevel" min={0} max={.6} step={.05} fmt={v => `${Math.round(v * 100)}%`} />
+      <div className="field"><label>מוזיקה בזמן סרטון</label><div className="seg full">{(Object.entries(VIDEO_MUSIC_LABEL) as [typeof st.videoMusic, string][]).map(([v, l]) => <button key={v} aria-pressed={st.videoMusic === v} onClick={() => updS({ videoMusic: v })}>{l}</button>)}</div><span className="muted small">מושהית: דועכת וחוזרת מאותה נקודה אחרי הסרטון. זו ברירת המחדל לכל סרטון; לכל שקופית אפשר לקבוע אחרת ב„מוזיקה בשקופית”.</span></div>
+      <R label="עוצמת מוזיקה כשהיא מונמכת" k="duckLevel" min={0} max={.6} step={.05} fmt={v => `${Math.round(v * 100)}%`} />
+      <R label="משך הדעיכה בעצירה או בהשהיה" k="musicFadeSec" min={.2} max={6} step={.1} fmt={v => `${v.toFixed(1)}s`} />
       <h4 style={{ margin: '10px 0' }}>תמונה</h4>
+      <div className="field"><label>התאמת תמונות למסך</label><div className="seg full"><button aria-pressed={st.photoFit !== 'cover'} onClick={() => updS({ photoFit: 'contain' })}>כל התמונה (ללא חיתוך)</button><button aria-pressed={st.photoFit === 'cover'} onClick={() => updS({ photoFit: 'cover' })}>מילוי מסך (חיתוך)</button></div><span className="muted small">ללא חיתוך: כל תמונה מוצגת בשלמותה על רקע מטושטש שלה, ותנועת המצלמה עוברת לרקע. לשקופית בודדת אפשר לשנות ב„מסגרת וחיתוך”.</span></div>
+      <div className="field"><label>שנה על התמונות</label><div className="seg full"><button aria-pressed={!st.showYears} onClick={() => updS({ showYears: false })}>לא להציג</button><button aria-pressed={!!st.showYears} onClick={() => updS({ showYears: true })}>להציג ליד הכיתוב</button></div><span className="muted small">השנה מהקובץ נשמרת למיון לפי שנה, אבל אינה מודפסת על התמונה אלא אם מפעילים כאן.</span></div>
       <R label="שולי בטיחות לטלוויזיה" k="safeMarginPct" min={0} max={10} step={.5} fmt={v => `${v}%`} />
       <div className="field"><label>גרעין פילם לתמונות ישנות</label><div className="row"><div className="seg"><button aria-pressed={st.grainOnArchival} onClick={() => updS({ grainOnArchival: true })}>כן</button><button aria-pressed={!st.grainOnArchival} onClick={() => updS({ grainOnArchival: false })}>לא</button></div><span className="muted small">לתמונות לפני</span><input type="number" value={st.archivalBeforeYear} onChange={e => updS({ archivalBeforeYear: +e.target.value })} style={{ width: 90 }} /></div></div>
     </Dialog>
@@ -68,7 +127,7 @@ function VersionsDialog({ onClose }: { onClose: () => void }) {
   const showDetails = async (id: number) => { if (details[id]) { setDetails(d => { const n = { ...d }; delete n[id]; return n; }); return; } const v = await api.version(id); setDetails(d => ({ ...d, [id]: v.chapters.map(c => `${c.title} (${c.slides.length})`).join(' · ') })); };
   const applyLabel = async (id: number) => { if (!rowLabel.trim()) return; await api.labelVersion(id, rowLabel.trim()); setLabelId(null); setRowLabel(''); toast('הגרסה סומנה — תישמר לתמיד', 'ok'); void reload(); };
   return (
-    <Dialog title="היסטוריית גרסאות" icon={<History />} onClose={onClose} wide footer={<><input value={label} onChange={e => setLabel(e.target.value)} placeholder="שם לגרסה הנוכחית (למשל: לפני שינוי הסדר)" style={{ flex: 1 }} /><button className="btn primary" disabled={!label} onClick={async () => { await saveNow(label); setLabel(''); toast('הגרסה נשמרה עם שם', 'ok'); void reload(); }}><Tag /> שמור גרסה מסומנת</button></>}>
+    <Dialog title="היסטוריית גרסאות" icon={<History />} onClose={onClose} wide footer={<><input value={label} onChange={e => setLabel(e.target.value)} placeholder="שם לגרסה הנוכחית (למשל: לפני שינוי הסדר)" style={{ flex: 1 }} /><button className="btn primary" disabled={!label} title={label ? 'שומר את המצב הנוכחי כגרסה קבועה בשם הזה' : 'הקלידו שם לגרסה בשדה משמאל'} onClick={async () => { await saveNow(label); setLabel(''); toast('הגרסה נשמרה עם שם', 'ok'); void reload(); }}><Tag /> שמור גרסה מסומנת</button></>}>
       <p className="muted small" style={{ marginBottom: 10 }}>כל שמירה אוטומטית נרשמת (נשמרות 300 האחרונות). גרסאות עם שם נשמרות לתמיד. השחזור עצמו נרשם כגרסה חדשה, כך שאפשר תמיד לחזור. „פרטים” מציג את פרקי הגרסה; „תן שם” הופך שמירה אוטומטית לקבועה.</p>
       <div className="versions">{list.map(v => <div key={v.id}><div className="version"><span>{v.label ? <span className="lab">{v.label}</span> : <span className="muted">שמירה אוטומטית</span>} <span className="m">#{v.id}</span></span><span className="m num">{new Date(v.saved_at).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span><span className="m num">{v.slides} שק׳ · {fmtTime(v.seconds)}</span>
         <span className="row">{confirmId === v.id ? <><button className="btn sm primary" onClick={() => restore(v.id)}>אישור שחזור</button><button className="btn sm ghost" onClick={() => setConfirmId(null)}>ביטול</button></> : labelId === v.id ? <><input value={rowLabel} onChange={e => setRowLabel(e.target.value)} placeholder="שם" style={{ width: 140, padding: '3px 8px' }} onKeyDown={e => e.key === 'Enter' && applyLabel(v.id)} autoFocus /><button className="btn sm primary" onClick={() => applyLabel(v.id)}>שמור</button><button className="btn sm ghost" onClick={() => setLabelId(null)}>ביטול</button></> : <><button className="btn sm ghost" onClick={() => showDetails(v.id)}>פרטים</button>{!v.label && <button className="btn sm ghost" onClick={() => { setLabelId(v.id); setRowLabel(''); }}><Tag /> תן שם</button>}<button className="btn sm" onClick={() => setConfirmId(v.id)}><RotateCcw /> שחזר</button></>}</span></div>

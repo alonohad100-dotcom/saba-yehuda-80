@@ -134,7 +134,7 @@ export function LookDemo() {
     </div>
   );
 }
-const DEF_FRAME: Frame = { zoom: 1, rotate: 0, flipH: false, kenBurnsAmount: 1 };
+const DEF_FRAME: Frame = { zoom: 1, rotate: 0, flipH: false, kenBurnsAmount: 1, fit: 'auto' };
 export function FrameDemo() {
   const [f, setF] = useState<Frame>(DEF_FRAME); const u = (p: Partial<Frame>) => setF(x => ({ ...x, ...p }));
   const slide = useMemo(() => demoPhoto({ id: 'frame-demo', frame: f, caption: 'הבית הראשון', kenBurns: 'in', focal: [40, 50] }, 4), [f]);

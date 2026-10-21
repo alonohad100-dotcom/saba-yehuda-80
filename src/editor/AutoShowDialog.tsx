@@ -32,7 +32,15 @@ export function AutoShowDialog({ onClose, fillChapterId }: { onClose: () => void
     try { await saveNow('לפני יצירה אוטומטית'); apply(r.show, mode, { afterChapterId: afterId, fillChapterId }); void api.kvSet(KV, { ...o, seed: undefined }).catch(() => {}); toast(mode === 'fill' ? `הפרק „${fillChapter?.title}” מולא אוטומטית · Ctrl+Z לביטול` : `נוצרה מצגת: ${r.show.chapters.length} פרקים · ${fmtTime(r.report.estimatedSeconds)} · Ctrl+Z לביטול`, 'ok'); onClose(); }
     catch (e) { toast('היצירה נכשלה: ' + (e as Error).message, 'error'); } finally { setBusy(false); }
   };
-  const toggleFolder = (p: string, on: boolean) => { const cur = o.folders.filter(f => f !== p && !f.startsWith(p + '/')); set({ folders: on ? [...cur, p] : cur }); };
+  /** Everything under `nodes` except the branch `p`, expressed as the smallest list of folder paths. */
+  const except = (nodes: DirNode[], p: string): string[] => nodes.flatMap(n => n.path === p ? [] : p.startsWith(n.path + '/') ? except(n.children, p) : [n.path]);
+  const toggleFolder = (p: string, on: boolean) => {
+    // an empty list means "all folders": unchecking one must first spell the list out, otherwise the click has no effect
+    const current = o.folders.length ? o.folders : tree.children.map(c => c.path);
+    const cur = current.flatMap(f => f === p ? [] : p.startsWith(f + '/') ? except(tree.children.find(c => c.path === f.split('/')[0])?.path === f ? tree.children.filter(c => c.path === f) : (function find(ns: DirNode[]): DirNode[] { for (const n of ns) { if (n.path === f) return [n]; const d = find(n.children); if (d.length) return d; } return []; })(tree.children), p) : f.startsWith(p + '/') ? [] : [f]);
+    const next = on ? [...cur, p] : cur;
+    set({ folders: next.length === tree.children.length && tree.children.every(c => next.includes(c.path)) ? [] : next });
+  };
   const folderOn = (p: string) => !o.folders.length || o.folders.some(f => f === p || p.startsWith(f + '/'));
   const ctx = (c?: typeof show.chapters[number]) => ({ assets, settings: show.settings, chapter: c, showPhotoIds: result?.report.usedPhotoIds });
   const stepsLabels = fillChapterId ? ['מקור', 'צורה', 'תצוגה מקדימה', 'מילוי'] : ['מקור', 'צורה', 'תצוגה מקדימה', 'החלה'];
@@ -111,7 +119,7 @@ export function AutoShowDialog({ onClose, fillChapterId }: { onClose: () => void
             {fillChapterId ? <p>השקופיות האוטומטיות בפרק „{fillChapter?.title}” יוחלפו. שקופיות נעולות ושקופיות שנוצרו ידנית נשארות. השם, המוזיקה וההגדרות של הפרק נשמרים.</p> : <>
               <label className="radio"><input type="radio" checked={mode === 'replace'} onChange={() => setMode('replace')} /> <b>החלף את כל המצגת</b><span className="muted small">רק פרקים ושקופיות נעולים נשמרים במקומם; כל השאר מוחלף (הגרסה הקודמת נשמרת)</span></label>
               <label className="radio"><input type="radio" checked={mode === 'append'} onChange={() => setMode('append')} /> <b>הוסף את הפרקים שנוצרו אחרי פרק קיים</b>
-                <select value={afterId} onChange={e => setAfterId(e.target.value)} disabled={mode !== 'append'} style={{ marginTop: 6 }}>{show.chapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></label>
+                <select value={afterId} onChange={e => setAfterId(e.target.value)} disabled={mode !== 'append'} title={mode === 'append' ? 'אחרי איזה פרק להוסיף' : 'זמין כשבוחרים „הוסף את הפרקים”'} style={{ marginTop: 6 }}>{show.chapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></label>
             </>}
             <div className="note" style={{ marginTop: 12 }}>גרסה מסומנת „לפני יצירה אוטומטית” נשמרת קודם, ו־<kbd>Ctrl</kbd>+<kbd>Z</kbd> מבטל את כל היצירה בצעד אחד.</div>
           </div>

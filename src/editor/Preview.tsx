@@ -5,7 +5,7 @@ import { useLibrary } from '@/store/library';
 import { useUi } from './ui';
 import { SlideView } from '@/show/SlideView';
 import { toast } from '@/store/toast';
-import { slideSeconds, slideTransition, fmtTime, TYPE_LABEL, TRANSITION_LABEL, uid, type Overlay, type Slide } from '@shared/model';
+import { slideSeconds, slideTransition, fmtTime, TYPE_LABEL, TRANSITION_LABEL, uid, type Overlay, type Slide, DEFAULT_CAPTION, TEXT_BLOCKS } from '@shared/model';
 import { SYMBOLS, SYMBOL_GROUPS, EMOJI, symbolSvg } from '@shared/symbols';
 import { resolveTheme, themeById } from '@shared/themes';
 
@@ -42,24 +42,33 @@ export function Preview() {
   const liveAnimate = animate && !selOverlay;
 
   // ---- drag / resize / rotate ----
-  const drag = useRef<{ mode: 'move' | 'resize' | 'rotate'; oid: string; sx: number; sy: number; ox: number; oy: number; ow: number; orot: number; cx: number; cy: number; hPct: number } | null>(null);
+  const drag = useRef<{ mode: 'move' | 'resize' | 'rotate' | 'cap'; oid: string; sx: number; sy: number; ox: number; oy: number; ow: number; orot: number; cx: number; cy: number; hPct: number } | null>(null);
   const pct = (dx: number, dy: number) => [dx / size.w * 100, dy / size.h * 100] as const;
   const onPointerDown = (e: React.PointerEvent) => {
-    if (!entry || entry.fallback) return; const t = e.target as HTMLElement; const ovEl = t.closest<HTMLElement>('.ov'); const handle = t.closest<HTMLElement>('.ov-handles .h');
+    if (!entry || entry.fallback) return; const t = e.target as HTMLElement; const ovEl = t.closest<HTMLElement>('.ov'); const handle = t.closest<HTMLElement>('.ov-handles .h'); const capEl = t.closest<HTMLElement>('.cap, [data-tx]');
     const st = stage.current!.getBoundingClientRect();
     if (handle && overlay) { const mode = handle.classList.contains('rot') ? 'rotate' : 'resize'; const bx = box!; drag.current = { mode, oid: overlay.id, sx: e.clientX, sy: e.clientY, ox: overlay.x, oy: overlay.y, ow: overlay.w, orot: overlay.rotate, cx: st.left + bx.l + bx.w / 2, cy: st.top + bx.t + bx.h / 2, hPct: bx.h / size.h * 100 }; }
     else if (ovEl) { const oid = ovEl.dataset.oid!; const o = entry.s.overlays!.find(x => x.id === oid)!; if (o.locked) { selectOverlay(oid); return; } selectOverlay(oid); const bx = ovEl.getBoundingClientRect(); drag.current = { mode: 'move', oid, sx: e.clientX, sy: e.clientY, ox: o.x, oy: o.y, ow: o.w, orot: o.rotate, cx: 0, cy: 0, hPct: bx.height / size.h * 100 }; }
+    else if (capEl && (capEl.dataset.tx || 'caption' in entry.s)) { // drag the caption or any built-in text block: x/y in % of the stage (top-left of the box)
+      const key = capEl.dataset.tx ?? ''; const cs = key ? entry.s.texts?.[key] : ('caption' in entry.s ? entry.s.captionStyle : undefined); const r = capEl.getBoundingClientRect(); if (selOverlay) selectOverlay(null);
+      drag.current = { mode: 'cap', oid: key, sx: e.clientX, sy: e.clientY, ox: cs?.x ?? (r.left - st.left) / size.w * 100, oy: cs?.y ?? (r.top - st.top) / size.h * 100, ow: r.width / size.w * 100, orot: 0, cx: 0, cy: 0, hPct: r.height / size.h * 100 }; }
     else { if (selOverlay) selectOverlay(null); return; }
     e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); useShow.temporal.getState().pause();
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current; if (!d || !entry) return; const [dx, dy] = pct(e.clientX - d.sx, e.clientY - d.sy); let patch: OvPatch = {}; const g: { v?: number; h?: number } = {};
+    if (d.mode === 'cap') { if (!d.oid && !('caption' in entry.s)) return; let x = d.ox + dx, y = d.oy + dy; const cx = x + d.ow / 2, cy = y + d.hPct / 2; if (Math.abs(cx - 50) < 1.2) { x = 50 - d.ow / 2; g.v = 50; } if (Math.abs(cy - 50) < 1.2) { y = 50 - d.hPct / 2; g.h = 50; } if (Math.abs(x - m) < 1) { x = m; g.v = m; } if (Math.abs(y - m) < 1) { y = m; g.h = m; }
+      x = Math.max(-20, Math.min(100, x)); y = Math.max(-20, Math.min(100, y)); // the schema's range
+      setGuides(g); const rx = Math.round(x * 10) / 10, ry = Math.round(y * 10) / 10;
+      if (d.oid) updateSlide(entry.s.id, { texts: { ...entry.s.texts, [d.oid]: { ...entry.s.texts?.[d.oid], x: rx, y: ry } } } as any);
+      else updateSlide(entry.s.id, { captionStyle: { ...DEFAULT_CAPTION, ...('caption' in entry.s ? entry.s.captionStyle : undefined), x: rx, y: ry } } as any);
+      return; }
     if (d.mode === 'move') { let x = d.ox + dx, y = d.oy + dy; const cx = x + d.ow / 2, cy = y + d.hPct / 2; if (Math.abs(cx - 50) < 1.2) { x = 50 - d.ow / 2; g.v = 50; } if (Math.abs(cy - 50) < 1.2) { y = 50 - d.hPct / 2; g.h = 50; } if (Math.abs(x - m) < 1) { x = m; g.v = m; } if (Math.abs(x + d.ow - (100 - m)) < 1) { x = 100 - m - d.ow; g.v = 100 - m; } if (Math.abs(y - m) < 1) { y = m; g.h = m; } patch = { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 }; }
     else if (d.mode === 'resize') patch = { w: Math.max(2, Math.min(100, Math.round((d.ow + dx) * 10) / 10)) };
     else { const ang = Math.atan2(e.clientY - d.cy, e.clientX - d.cx) * 180 / Math.PI + 90; let r = ((ang + 540) % 360) - 180; for (const snap of [-180, -90, 0, 90, 180]) if (Math.abs(r - snap) < 4) r = snap === -180 ? 180 : snap; patch = { rotate: Math.round(r) }; }
     setGuides(g); updateOverlay(entry.s.id, d.oid, patch);
   };
-  const onPointerUp = (e: React.PointerEvent) => { const d = drag.current; if (!d || !entry) return; drag.current = null; setGuides({}); (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); useShow.temporal.getState().resume(); const o = entry.s.overlays?.find(x => x.id === d.oid); if (o) updateOverlay(entry.s.id, d.oid, { x: o.x }); };
+  const onPointerUp = (e: React.PointerEvent) => { const d = drag.current; if (!d || !entry) return; drag.current = null; setGuides({}); (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); useShow.temporal.getState().resume(); if (d.mode === 'cap') { if (d.oid) updateSlide(entry.s.id, { texts: { ...entry.s.texts } } as any); else if ('caption' in entry.s && entry.s.captionStyle) updateSlide(entry.s.id, { captionStyle: { ...entry.s.captionStyle } } as any); return; } const o = entry.s.overlays?.find(x => x.id === d.oid); if (o) updateOverlay(entry.s.id, d.oid, { x: o.x }); };
 
   const add = (o: Overlay) => { if (!entry) return; addOverlay(entry.s.id, o); selectOverlay(o.id); setMenu(null); setAnimate(true); };
   const addImage = () => { const id = libSel.find(i => assets[i]?.type === 'photo'); if (!id) return toast('בחר תמונה בספרייה ואז לחץ „+ תמונה”', 'warn'); add({ id: uid('o'), kind: 'image', assetId: id, h: 38, mask: 'rounded', border: true, fit: 'cover', x: 62, y: 10, w: 28, rotate: -3, opacity: 1, z: 1, anim: { in: 'pop', delay: .9, duration: .9, loop: 'none', out: 'none' } }); };
@@ -80,15 +89,19 @@ export function Preview() {
           {safe && <div className="safe" style={{ inset: `${m}%` }} />}
           {guides.v != null && <div className="guide v" style={{ left: `${guides.v}%` }} />}{guides.h != null && <div className="guide h" style={{ top: `${guides.h}%` }} />}
           {overlay && box && <div className="ov-handles" style={{ left: box.l, top: box.t, width: box.w, height: box.h }}><span className="lab">{overlay.kind === 'text' ? 'טקסט' : overlay.kind === 'symbol' ? 'סמל' : overlay.kind === 'emoji' ? 'אימוג׳י' : overlay.kind === 'shape' ? 'צורה' : 'תמונה'}{overlay.locked ? ' · נעול' : ''} · {Math.round(overlay.x)}%, {Math.round(overlay.y)}%{overlay.rotate ? ` · ${overlay.rotate}°` : ''}</span>{!overlay.locked && <><span className="rotline" /><span className="h rot" title="סובב (נצמד ל־90°)" /><span className="h se" title="שנה גודל" /></>}{overlay.locked && <Lock style={{ position: 'absolute', top: 4, insetInlineStart: 4, width: 12, height: 12, color: 'var(--accent)' }} />}</div>}
-          {photo && !selOverlay && <div className="hint">מוקד <span className="ltr">{focal![0]}% · {focal![1]}%</span></div>}
+          {entry && !photo && !selOverlay && (TEXT_BLOCKS[entry.s.type]?.length ?? 0) > 0 && <div className="hint">גררו כותרת או טקסט כדי למקם אותם</div>}
+          {photo && !selOverlay && <div className="hint">מוקד <span className="ltr">{focal![0]}% · {focal![1]}%</span>{photo.caption ? (photo.captionStyle?.x != null ? <> · כיתוב <span className="ltr">{photo.captionStyle.x}% · {photo.captionStyle.y}%</span></> : ' · גררו את הכיתוב למקום אחר') : ''}</div>}
         </div>
       </div>
       <div className="preview-tools">
-        {canAdd ? <div className="btn-group" data-tour="add-tools" style={{ position: 'relative' }}>
-          <button className="btn tip" data-tip="שכבת טקסט (שישה סגנונות)" onClick={() => setMenu(menu === 'text' ? null : 'text')}><Type /> טקסט</button>
-          <button className="btn tip" data-tip="אייקון או אימוג׳י" onClick={() => setMenu(menu === 'symbol' ? null : 'symbol')}><Smile /> סמל</button>
-          <button className="btn tip" data-tip="מסגרת, פס, מלבן, עיגול" onClick={() => setMenu(menu === 'shape' ? null : 'shape')}><Shapes /> צורה</button>
-          <button className="btn tip" data-tip="תמונה קטנה מהבחירה בספרייה" onClick={addImage}><ImagePlus /> תמונה</button>
+        {canAdd ? <div className="add-tools" data-tour="add-tools" style={{ position: 'relative' }}>
+          {/* the menu must live outside .btn-group: that group clips its overflow and would hide a menu that pops out of it */}
+          <div className="btn-group">
+            <button className="btn tip" data-tip="שכבת טקסט (שישה סגנונות)" aria-expanded={menu === 'text'} onClick={() => setMenu(menu === 'text' ? null : 'text')}><Type /> טקסט</button>
+            <button className="btn tip" data-tip="אייקון או אימוג׳י" aria-expanded={menu === 'symbol'} onClick={() => setMenu(menu === 'symbol' ? null : 'symbol')}><Smile /> סמל</button>
+            <button className="btn tip" data-tip="מסגרת, פס, מלבן, עיגול" aria-expanded={menu === 'shape'} onClick={() => setMenu(menu === 'shape' ? null : 'shape')}><Shapes /> צורה</button>
+            <button className="btn tip" data-tip={libSel.some(i => assets[i]?.type === 'photo') ? 'תמונה קטנה מהבחירה בספרייה' : 'בחרו קודם תמונה בספרייה'} onClick={addImage}><ImagePlus /> תמונה</button>
+          </div>
           {menu && <><div style={{ position: 'fixed', inset: 0, zIndex: 39 }} onClick={() => setMenu(null)} /><div className="menu addmenu" style={{ bottom: 'calc(100% + 6px)', insetInlineStart: 0 }}>
             {menu === 'text' && <><div className="menu-h">סגנונות טקסט</div>{TEXT_PRESETS.map(p => <button key={p.label} onClick={() => add(p.make(entry!.s))}><Type />{p.label}</button>)}</>}
             {menu === 'shape' && <><div className="menu-h">צורות</div>{SHAPES.map(p => <button key={p.label} onClick={() => add(p.make())}><Shapes />{p.label}</button>)}</>}

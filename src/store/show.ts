@@ -119,11 +119,13 @@ async function flush() {
   catch (e) { useShow.setState({ save: 'error', saveError: (e as Error).message }); }
   finally { inflight = false; if (pending) flush(); }
 }
-useShow.subscribe((s, prev) => { if (s.show && s.show !== prev.show && s.save === 'dirty') { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 600); } });
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 600); }
+useShow.subscribe((s, prev) => { if (s.show && s.show !== prev.show && s.save === 'dirty') scheduleSave(); });
 export function saveNow(label?: string) { clearTimeout(saveTimer); const st = useShow.getState(); if (!st.show) return Promise.resolve(); useShow.setState({ save: 'saving' }); return api.saveShow(st.show, label).then(() => useShow.setState({ save: 'saved', lastSavedAt: Date.now() })).catch(e => useShow.setState({ save: 'error', saveError: (e as Error).message })); }
+// undo/redo restore `show` through the temporal store (save state unchanged at that moment), so the subscriber above does not fire: schedule the save explicitly
 export function undo() { useShow.temporal.getState().undo(); markDirty(); }
 export function redo() { useShow.temporal.getState().redo(); markDirty(); }
-function markDirty() { useShow.setState({ save: 'dirty' }); }
+function markDirty() { useShow.setState({ save: 'dirty' }); scheduleSave(); }
 
 /* ---------- derived helpers ---------- */
 export function newSlideFor(asset: Asset, settings: Settings): Slide {

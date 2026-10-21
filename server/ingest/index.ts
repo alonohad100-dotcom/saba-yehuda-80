@@ -14,8 +14,9 @@ import { probe, transcodeVideo, transcodeMusic, peaks } from './ffmpeg.ts';
 import type { Asset, AssetType, YearSource } from '../../shared/model.ts';
 
 const IMG = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff', '.heic', '.heif', '.avif', '.gif', '.bmp']);
-const VID = new Set(['.mp4', '.mov', '.m4v', '.3gp', '.mkv', '.avi', '.webm', '.mts']);
-const MUS = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg', '.opus', '.wma']);
+const VID = new Set(['.mp4', '.mov', '.m4v', '.3gp', '.mkv', '.avi', '.webm', '.mts', '.m2ts', '.vob', '.mpg', '.mpeg', '.wmv', '.flv', '.ts']); // ffmpeg decodes all of these; DVD .vob and old camcorder files included
+const MUS = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg', '.opus', '.wma', '.mpga', '.mp2', '.aiff', '.aif', '.amr']);
+const AUD_ALIAS = new Set(['.mpeg', '.mpg']); // MPEG audio files (an MP3 is MPEG-1 layer III) that some apps save with the video extension
 
 export interface IngestProgress { running: boolean; phase: string; done: number; total: number; current?: string; photos: number; videos: number; music: number; warnings: { file: string; message: string }[]; errors: number; startedAt?: number; finishedAt?: number; log: string[]; analyzeDone?: number; analyzeTotal?: number }
 export const progress: IngestProgress = { running: false, phase: 'idle', done: 0, total: 0, photos: 0, videos: 0, music: 0, warnings: [], errors: 0, log: [] };
@@ -25,6 +26,8 @@ function log(line: string) { progress.log.push(line); if (progress.log.length > 
 function warn(file: string, message: string) { progress.warnings.push({ file, message }); log(`⚠ ${file}: ${message}`); }
 
 type Found = { abs: string; rel: string; type: AssetType; bytes: number; mtime: number };
+/** Files in media/ with an extension the pipeline does not handle (e.g. .vob from a DVD, .pdf, .doc); reported so they are not silently lost. */
+const skipped: string[] = [];
 
 function scan(dir: string, out: Found[] = []): Found[] {
   if (!fs.existsSync(dir)) return out;
@@ -33,8 +36,11 @@ function scan(dir: string, out: Found[] = []): Found[] {
     const abs = path.join(dir, e.name);
     if (e.isDirectory()) { scan(abs, out); continue; }
     const ext = path.extname(e.name).toLowerCase();
-    const type: AssetType | null = IMG.has(ext) ? 'photo' : VID.has(ext) ? 'video' : MUS.has(ext) ? 'music' : null;
-    if (!type) continue;
+    const rel = path.relative(MEDIA_DIR, abs).split(path.sep).join('/');
+    // Anything dropped into media/music/ is music whatever its extension: WhatsApp exports voice notes and songs as ".mpeg"/".mpga", which would otherwise be read as MPEG video.
+    const inMusic = rel.toLowerCase().startsWith('music/');
+    const type: AssetType | null = IMG.has(ext) ? 'photo' : (inMusic && (VID.has(ext) || MUS.has(ext) || AUD_ALIAS.has(ext))) ? 'music' : VID.has(ext) ? 'video' : MUS.has(ext) ? 'music' : null;
+    if (!type) { if (!['.txt', '.ini', '.db', '.json', '.ds_store'].includes(ext)) skipped.push(path.relative(MEDIA_DIR, abs).split(path.sep).join('/')); continue; }
     const st = fs.statSync(abs);
     out.push({ abs, rel: path.relative(MEDIA_DIR, abs).split(path.sep).join('/'), type, bytes: st.size, mtime: Math.round(st.mtimeMs) });
   }
@@ -80,7 +86,7 @@ async function processOne(f: Found, id: string): Promise<void> {
   const name = path.basename(f.rel); const folder = path.basename(path.dirname(f.rel)) || '';
   const base: Asset = { id, type: f.type, relPath: f.rel, name, folder, bytes: f.bytes, mtime: f.mtime, yearSource: 'mtime', status: 'processing' };
   const existing = getAsset(id);
-  if (existing && existing.status === 'ready' && derivativesExist(f.type, id)) { upsertAsset({ ...existing, relPath: f.rel, name, folder, bytes: f.bytes, mtime: f.mtime }); markSeen(id); return; }
+  if (existing && existing.status === 'ready' && derivativesExist(existing.type ?? f.type, id)) { upsertAsset({ ...existing, relPath: f.rel, name, folder, bytes: f.bytes, mtime: f.mtime }); markSeen(id); return; }
   upsertAsset(base);
   try {
     let year: number | undefined, yearSource: YearSource = 'mtime', takenAt: string | undefined;
@@ -93,9 +99,18 @@ async function processOne(f: Found, id: string): Promise<void> {
       else { [year, yearSource] = fallbackYear(); if (yearSource !== 'mtime') warn(f.rel, `אין תאריך EXIF — השנה נלקחה מ${yearSource === 'name' ? 'שם הקובץ' : 'שם התיקייה'} (${year})`); else warn(f.rel, `אין תאריך EXIF ולא שנה בשם — נלקח תאריך הקובץ (${year}); קבע שנה בספרייה`); }
       upsertAsset({ ...base, width: r.width, height: r.height, takenAt, year, yearSource, portrait: r.height > r.width, focal: r.focal, status: 'ready' });
       progress.photos++;
+    } else if (f.type === 'video' && !(await probe(f.abs)).hasVideo) {
+      // an .mpeg/.mpg that holds only audio (WhatsApp saves MP3s this way) is music, not a broken video
+      const info0 = await probe(f.abs); if (!info0.hasAudio) throw new Error('no video stream');
+      warn(f.rel, 'הקובץ מכיל רק שמע — נקלט כמוזיקה. מומלץ להעביר אותו לתיקיית music/');
+      const out = path.join(CACHE_DIR, 'music', `${id}.m4a`);
+      await transcodeMusic(f.abs, out);
+      const info = await probe(out);
+      const pk = await peaks(out);
+      upsertAsset({ ...base, type: 'music', duration: Math.round(info.duration * 10) / 10, peaks: pk, year: new Date(f.mtime).getFullYear(), yearSource: 'mtime', status: 'ready' });
+      progress.music++;
     } else if (f.type === 'video') {
       const info = await probe(f.abs);
-      if (!info.hasVideo) throw new Error('no video stream');
       const out = path.join(CACHE_DIR, 'vid', `${id}.1080.mp4`), poster = path.join(CACHE_DIR, 'vid', `${id}.poster.jpg`);
       const t = await transcodeVideo(f.abs, out, poster);
       await posterThumb(poster, id);
@@ -141,8 +156,9 @@ export async function runIngest(): Promise<IngestProgress> {
   Object.assign(progress, { running: true, phase: 'scan', done: 0, total: 0, photos: 0, videos: 0, music: 0, warnings: [], errors: 0, startedAt: Date.now(), finishedAt: undefined, log: [] });
   emit('start');
   try {
-    const found = scan(MEDIA_DIR);
+    skipped.length = 0; const found = scan(MEDIA_DIR);
     progress.total = found.length; log(`נמצאו ${found.length} קבצים ב־media/`);
+    for (const rel of skipped) warn(rel, `סוג קובץ לא נתמך (${path.extname(rel) || 'ללא סיומת'}) — דולג. סרטוני DVD (.vob) יש להמיר ל־MP4 קודם`);
     markAllUnseen();
     pruneUnseenFiles(new Set(found.map(f => f.rel)));
     progress.phase = 'hash';

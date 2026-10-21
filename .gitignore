@@ -10,3 +10,4 @@ data/backups/
 Thumbs.db
 .audit/
 .trash/
+exports/

@@ -127,9 +127,9 @@ export function Library() {
       </div>
       <div className="lib-foot" data-tour="lib-foot">
         <div className="row wrap" style={{ gap: 6 }}>
-          <button className="btn sm primary" disabled={!libSel.length} onClick={() => addSelected()}><Plus /> הוסף לפרק {libSel.length > 1 ? `(${libSel.length})` : ''}</button>
-          <button className="btn sm" disabled={photoSel < 2 || photoSel > 6} onClick={addCollage}><LayoutGrid /> קולאז׳</button>
-          <button className="btn sm" disabled={photoSel !== 2} onClick={addPair}>זוג</button>
+          <button className="btn sm primary" disabled={!libSel.length} title={libSel.length ? 'שקופית לכל קובץ שנבחר, לפי שנה' : list.length ? 'בחרו קודם תמונות או סרטונים בספרייה' : 'הספרייה ריקה: סרקו את media/ קודם'} onClick={() => addSelected()}><Plus /> הוסף לפרק {libSel.length > 1 ? `(${libSel.length})` : ''}</button>
+          <button className="btn sm" disabled={photoSel < 2 || photoSel > 6} title={photoSel >= 2 && photoSel <= 6 ? `קולאז׳ מ־${photoSel} התמונות שנבחרו` : `קולאז׳: בחרו 2 עד 6 תמונות (נבחרו ${photoSel})`} onClick={addCollage}><LayoutGrid /> קולאז׳</button>
+          <button className="btn sm" disabled={photoSel !== 2} title={photoSel === 2 ? 'שתי התמונות זו לצד זו' : `זוג: בחרו בדיוק 2 תמונות (נבחרו ${photoSel})`} onClick={addPair}>זוג</button>
           {libSel.length > 0 && <span className="row" style={{ gap: 4 }}><CalendarClock style={{ width: 14, height: 14, color: 'var(--muted)' }} /><input type="number" value={yearEdit} onChange={e => setYearEdit(e.target.value)} placeholder="שנה" style={{ width: 74, padding: '3px 6px', minHeight: 28 }} onKeyDown={e => e.key === 'Enter' && setYear()} title="קבע שנה לקבצים הנבחרים (Enter)" /></span>}
         </div>
         <span className="lib-hint">{libSel.length ? `${libSel.length} נבחרו · Enter מוסיף · אפשר לגרור לסטוריבורד` : 'Ctrl / Shift לבחירה מרובה · לחיצה כפולה מוסיפה לפרק'}</span>

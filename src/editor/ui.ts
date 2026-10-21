@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type DialogId = null | 'settings' | 'versions' | 'ingest' | 'help' | 'auto';
+export type DialogId = null | 'settings' | 'versions' | 'ingest' | 'help' | 'auto' | 'export';
 interface UiState {
   libSel: string[]; setLibSel: (ids: string[]) => void; toggleLibSel: (id: string) => void; clearLibSel: () => void;
   dialog: DialogId; openDialog: (d: DialogId, ctx?: { fillChapterId?: string }) => void; dialogCtx: { fillChapterId?: string };

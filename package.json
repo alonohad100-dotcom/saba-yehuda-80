@@ -27,7 +27,8 @@
     "demo:show": "node scripts/seed-demo-show.mjs",
     "demo:clean": "node scripts/clean-data.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
-    "audit:responsive": "node scripts/audit-responsive.mjs .audit/responsive"
+    "audit:responsive": "node scripts/audit-responsive.mjs .audit/responsive",
+    "audit:wiring": "node scripts/audit-wiring.mjs .audit/wiring"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",

@@ -8,14 +8,14 @@ import { Checks, useChecks } from './Checks';
 import { toast } from '@/store/toast';
 import { similarUnused } from '@shared/autoshow/generate';
 import { usedAssetIds } from '@/show/engine';
-import { type Slide, type Chapter, type KenBurns, type TransitionId, type Look, type Frame, type CaptionStyle, slideSeconds, assetThumb, fmtTime, TYPE_LABEL, TRANSITION_LABEL, layoutsFor, COLLAGE_LAYOUTS, COLLAGE_LAYOUT_LABEL, type CollageLayout } from '@shared/model';
+import { type Slide, type Chapter, type KenBurns, type TransitionId, type Look, type Frame, type CaptionStyle, slideSeconds, assetThumb, fmtTime, TYPE_LABEL, TRANSITION_LABEL, layoutsFor, COLLAGE_LAYOUTS, COLLAGE_LAYOUT_LABEL, type CollageLayout, MUSIC_CUE_LABEL, VIDEO_MUSIC_LABEL, trackAt, DEFAULT_CAPTION, TEXT_BLOCKS } from '@shared/model';
 import { OverlayInspector } from './OverlayInspector';
 import { ThemeGrid } from './ThemePicker';
 import { themeById, THEMES as THEMES_LIST } from '@shared/themes';
 import { Eye, EyeOff, Type, Smile, Shapes, Image as ImageIcon } from 'lucide-react';
 const DEF_LOOK: Look = { filter: 'none', vignette: .5, brightness: 100, contrast: 100, saturation: 100 };
-const DEF_FRAME: Frame = { zoom: 1, rotate: 0, flipH: false, kenBurnsAmount: 1 };
-const DEF_CAP: CaptionStyle = { anim: 'rise', size: 1, position: 'bottom', align: 'right', font: 'display', box: false };
+const DEF_FRAME: Frame = { zoom: 1, rotate: 0, flipH: false, kenBurnsAmount: 1, fit: 'auto' };
+const DEF_CAP: CaptionStyle = DEFAULT_CAPTION;
 const LOOK_PRESETS: [string, Partial<Look>][] = [['נקי', { filter: 'none', vignette: .3, brightness: 100, contrast: 100, saturation: 100 }], ['ארכיון', { filter: 'sepia', vignette: .75, contrast: 95, saturation: 100, brightness: 102 }], ['קולנועי', { filter: 'cool', vignette: .85, contrast: 112, saturation: 85, brightness: 98 }], ['שחור־לבן', { filter: 'bw', vignette: .6, contrast: 110, brightness: 100, saturation: 100 }], ['חם', { filter: 'warm', vignette: .5, contrast: 104, saturation: 110, brightness: 103 }], ['דהוי', { filter: 'faded', vignette: .4, contrast: 100, saturation: 100, brightness: 100 }]];
 const FILTER_LABEL: Record<Look['filter'], string> = { none: 'ללא', bw: 'שחור־לבן', sepia: 'ספיה', warm: 'חם', cool: 'קר', faded: 'דהוי', vivid: 'חי' };
 
@@ -46,7 +46,12 @@ function Mini({ id, hero, onRemove, onHero, onClick }: { id: string; hero?: bool
   const a = useLibrary(s => s.assets[id]);
   return <div className={`mini ${hero ? 'hero' : ''}`} onClick={onClick} title={a ? `${a.name} · ${a.year ?? ''}` : 'קובץ חסר'} style={{ cursor: onClick ? 'pointer' : 'default' }}>{a ? <img src={assetThumb(a)} alt="" /> : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: 'var(--bad)', fontSize: 10 }}>חסר</div>}{onHero && <button onClick={(e) => { e.stopPropagation(); onHero(); }} style={{ insetInlineEnd: 'auto', insetInlineStart: 2 }} title="תמונה ראשית"><Star /></button>}{onRemove && <button onClick={(e) => { e.stopPropagation(); onRemove(); }} title="הסר"><X /></button>}</div>;
 }
-function useLibPick() { const libSel = useUi(s => s.libSel); const assets = useLibrary(s => s.assets); return { libSel, photos: libSel.filter(id => assets[id]?.type === 'photo'), videos: libSel.filter(id => assets[id]?.type === 'video'), clear: useUi.getState().clearLibSel }; }
+function useLibPick() {
+  const libSel = useUi(s => s.libSel); const assets = useLibrary(s => s.assets); const photos = libSel.filter(id => assets[id]?.type === 'photo'), videos = libSel.filter(id => assets[id]?.type === 'video');
+  // tooltips for buttons that act on the library selection: say what to select when the selection does not fit
+  const need = (kind: 'photo' | 'video', n: 'one' | 'some') => { const have = kind === 'photo' ? photos.length : videos.length; const what = kind === 'photo' ? 'תמונה' : 'סרטון'; if (n === 'one') return have === 1 ? `${what} מהבחירה בספרייה` : `בחרו ${what} אחת בספרייה (נבחרו ${have})`; return have ? `${have} ${what === 'תמונה' ? 'תמונות' : 'סרטונים'} מהבחירה בספרייה` : `בחרו ${what === 'תמונה' ? 'תמונות' : 'סרטונים'} בספרייה תחילה`; };
+  return { libSel, photos, videos, clear: useUi.getState().clearLibSel, need };
+}
 
 /** Collapsible inspector section with an icon and a one-line summary when closed; open state is remembered. */
 function Section({ id, icon, title, summary, children }: { id: string; icon: ReactNode; title: string; summary?: string; children: ReactNode }) {
@@ -83,17 +88,25 @@ function ChapterInspector({ c }: { c: Chapter }) {
   const dur = c.slides.reduce((t, s) => t + slideSeconds(s, c, show.settings, assets), 0); const idx = show.chapters.findIndex(x => x.id === c.id);
   return (<>
     <div className="insp-title"><span className="ty">פרק</span><span>{c.title}</span><span className="sub num">{c.slides.length} שק׳ · {fmtTime(dur)}</span></div>
+    <div className="insp-actions" data-tour="chapter-actions">
+      <button className="btn sm" onClick={() => { sort(c.id, assets); toast('הפרק סודר לפי שנה'); }}><SortAsc /> סדר לפי שנה</button>
+      <button className="btn sm" disabled={idx === 0} title={idx === 0 ? 'זה כבר הפרק הראשון' : 'הזז את הפרק אחד קדימה'} onClick={() => move(c.id, -1)}><ArrowUp /> הקדם</button>
+      <button className="btn sm" disabled={idx === show.chapters.length - 1} title={idx === show.chapters.length - 1 ? 'זה כבר הפרק האחרון' : 'הזז את הפרק אחד אחורה'} onClick={() => move(c.id, 1)}><ArrowDown /> אחר</button>
+      <button className="btn sm danger" disabled={show.chapters.length <= 1} title={show.chapters.length <= 1 ? 'אי אפשר למחוק את הפרק היחיד' : 'מחק את הפרק וכל השקופיות שבו'} onClick={() => { if (c.slides.length && !confirm(`למחוק את הפרק „${c.title}” עם ${c.slides.length} שקופיות?`)) return; remove(c.id); toast('הפרק נמחק · Ctrl+Z לביטול'); }}><Trash2 /> מחק פרק</button>
+      <button className="btn sm primary" onClick={() => window.open(`/show${c.slides[0] ? `?from=${c.slides[0].id}` : ''}`, 'sy80-show')}><Play /> נגן מהפרק</button>
+    </div>
     <div className="insp-section">
       <Field label="שם הפרק"><input className="he" value={c.title} onChange={e => upd(c.id, { title: e.target.value })} /></Field>
       <Field label="כותרת משנה (למציג בלבד)"><input value={c.subtitle ?? ''} onChange={e => upd(c.id, { subtitle: e.target.value })} placeholder="למשל 1946–1964" /></Field>
     </div>
-    <Section id="ch-music" icon={<Music />} title="מוזיקה" summary={m ? m.name.replace(/\.[^.]+$/, '') : 'ללא'}>
-      <Field label="קטע"><select value={c.musicId ?? ''} onChange={e => upd(c.id, { musicId: e.target.value || undefined, musicStartSec: 0 })}><option value="">ללא מוזיקה (ממשיך מהפרק הקודם)</option>{music.map(a => <option key={a.id} value={a.id}>{a.name.replace(/\.[^.]+$/, '')} · {fmtTime(a.duration ?? 0)}</option>)}</select></Field>
+    <Section id="ch-music" icon={<Music />} title="מוזיקה" summary={m ? m.name.replace(/\.[^.]+$/, '') : c.musicOff ? 'שקט' : 'ממשיכה מהפרק הקודם'}>
+      <Field label="קטע"><select value={c.musicOff ? '__off__' : (c.musicId ?? '')} onChange={e => { const v = e.target.value; upd(c.id, v === '__off__' ? { musicId: undefined, musicOff: true, musicStartSec: 0 } : { musicId: v || undefined, musicOff: undefined, musicStartSec: 0 }); }}><option value="">ללא שיר משלו (ממשיך מהפרק הקודם)</option><option value="__off__">שקט — המוזיקה נעצרת בתחילת הפרק</option>{music.map(a => <option key={a.id} value={a.id}>{a.name.replace(/\.[^.]+$/, '')} · {fmtTime(a.duration ?? 0)}</option>)}</select></Field>
       {m && <>
         <Field label="נקודת התחלה" hint={fmtTime(c.musicStartSec ?? 0)}><Waveform peaks={m.peaks ?? []} duration={m.duration ?? 0} start={c.musicStartSec ?? 0} cover={dur} onStart={(s) => upd(c.id, { musicStartSec: s })} /></Field>
         <Field label="עוצמה" hint={`${Math.round((c.musicLevel ?? show.settings.musicLevel) * 100)}%`}><input type="range" min={0} max={1} step={.05} value={c.musicLevel ?? show.settings.musicLevel} onChange={e => upd(c.id, { musicLevel: +e.target.value })} /></Field>
         {m.duration && m.duration - (c.musicStartSec ?? 0) < dur && <div className="check warn" style={{ cursor: 'default' }}>המוזיקה קצרה מהפרק ב־{fmtTime(dur - (m.duration - (c.musicStartSec ?? 0)))}; תתבצע חזרה עם crossfade.</div>}
       </>}
+      {c.musicOff && <div className="muted small">המוזיקה של הפרק הקודם דועכת כשהפרק מתחיל. שקופית עם „מתחילה מחדש” או פרק עם שיר יחזירו מוזיקה.</div>}
       {!music.length && <div className="muted small">אין קטעי מוזיקה בספרייה. הניחו קבצים ב־media/music וסרקו.</div>}
     </Section>
     <Section id="ch-theme" icon={<Palette />} title="ערכת צבעים לפרק" summary={c.theme ? themeById(c.theme).name : 'כמו המצגת'}>
@@ -105,15 +118,6 @@ function ChapterInspector({ c }: { c: Chapter }) {
       <Field label="מעבר"><Seg value={c.defaults?.transition} options={TRANS} allowUnset="כללי" onChange={v => upd(c.id, { defaults: { ...c.defaults, transition: v } })} /></Field>
       <Field label="תנועת מצלמה" hint={c.defaults?.kenBurns ? KB_LABEL[c.defaults.kenBurns] : 'כללי (פנימה)'}><KbPad value={c.defaults?.kenBurns} onPick={k => upd(c.id, { defaults: { ...c.defaults, kenBurns: k } })} /></Field>
     </Section>
-    <div className="insp-section"><h4>פעולות</h4>
-      <div className="row wrap">
-        <button className="btn sm" onClick={() => { sort(c.id, assets); toast('הפרק סודר לפי שנה'); }}><SortAsc /> סדר לפי שנה</button>
-        <button className="btn sm" disabled={idx === 0} onClick={() => move(c.id, -1)}><ArrowUp /> הקדם</button>
-        <button className="btn sm" disabled={idx === show.chapters.length - 1} onClick={() => move(c.id, 1)}><ArrowDown /> אחר</button>
-        <button className="btn sm" onClick={() => window.open(`/show${c.slides[0] ? `?from=${c.slides[0].id}` : ''}`, 'sy80-show')}><Play /> נגן מהפרק</button>
-        <button className="btn sm danger" disabled={show.chapters.length <= 1} onClick={() => { if (c.slides.length && !confirm(`למחוק את הפרק „${c.title}” עם ${c.slides.length} שקופיות?`)) return; remove(c.id); toast('הפרק נמחק'); }}><Trash2 /> מחק פרק</button>
-      </div>
-    </div>
     <Section id="ch-auto" icon={<Sparkles />} title="יצירה אוטומטית" summary={c.locked ? 'נעול' : ''}>
       <div className="row wrap">
         <button className="btn sm soft" onClick={() => openDialog('auto', { fillChapterId: c.id })}><Sparkles /> מלא את הפרק אוטומטית</button>
@@ -136,7 +140,8 @@ function LookSection({ s, set }: { s: Slide; set: (p: Record<string, unknown>) =
 }
 function FrameSection({ s, set }: { s: Slide; set: (p: Record<string, unknown>) => void }) {
   const f = s.frame ?? DEF_FRAME; const u = (p: Partial<Frame>) => set({ frame: { ...f, ...p } });
-  return <Section id="frame" icon={<Crop />} title="מסגרת וחיתוך" summary={s.frame ? `×${f.zoom.toFixed(2)}${f.rotate ? ` · ${f.rotate}°` : ''}${f.flipH ? ' · מראה' : ''}` : 'ברירת מחדל'}>
+  return <Section id="frame" icon={<Crop />} title="מסגרת וחיתוך" summary={s.frame ? `×${f.zoom.toFixed(2)}${f.rotate ? ` · ${f.rotate}°` : ''}${f.flipH ? ' · מראה' : ''}${f.fit === 'cover' ? ' · מילוי' : f.fit === 'contain' ? ' · ללא חיתוך' : ''}` : 'ברירת מחדל'}>
+    <div className="field"><label>התאמה למסך</label><Seg value={f.fit ?? 'auto'} options={[['auto', 'לפי המצגת'], ['contain', 'ללא חיתוך'], ['cover', 'מילוי מסך']]} onChange={v => u({ fit: v ?? 'auto' })} /></div>
     <R label="זום (סביב נקודת המוקד)" value={f.zoom} min={1} max={3} step={0.05} fmt={v => `×${v.toFixed(2)}`} onChange={v => u({ zoom: v })} />
     <R label="עוצמת תנועת המצלמה" value={f.kenBurnsAmount} min={0} max={2} step={0.1} fmt={v => v === 0 ? 'ללא' : `×${v.toFixed(1)}`} onChange={v => u({ kenBurnsAmount: v })} />
     <div className="row wrap"><Seg value={String(f.rotate)} options={[['0', '0°'], ['90', '90°'], ['180', '180°'], ['270', '270°']]} onChange={v => u({ rotate: +(v ?? 0) })} /><label className="chk"><input type="checkbox" checked={f.flipH} onChange={e => u({ flipH: e.target.checked })} /> הפוך אופקית</label>{s.frame && <button className="btn sm ghost" onClick={() => set({ frame: undefined })}>איפוס</button>}</div>
@@ -144,11 +149,45 @@ function FrameSection({ s, set }: { s: Slide; set: (p: Record<string, unknown>) 
 }
 function CaptionSection({ s, set }: { s: Slide; set: (p: Record<string, unknown>) => void }) {
   const c = s.captionStyle ?? DEF_CAP; const u = (p: Partial<CaptionStyle>) => set({ captionStyle: { ...c, ...p } });
-  return <Section id="caption" icon={<Captions />} title="סגנון הכיתוב" summary={s.captionStyle ? `${({ rise: 'עלייה', fade: 'עמעום', words: 'מילה־מילה', letters: 'אות־אות', none: 'ללא' })[c.anim]} · ${({ bottom: 'למטה', center: 'מרכז', top: 'למעלה' })[c.position]}` : 'ברירת מחדל'}>
+  const free = c.x != null && c.y != null; const pos = (free ? 'free' : c.position) as 'bottom' | 'center' | 'top' | 'free';
+  const POS_LABEL = { bottom: 'למטה', center: 'מרכז', top: 'למעלה', free: 'חופשי' };
+  return <Section id="caption" icon={<Captions />} title="סגנון הכיתוב" summary={s.captionStyle ? `${({ rise: 'עלייה', fade: 'עמעום', words: 'מילה־מילה', letters: 'אות־אות', none: 'ללא' })[c.anim]} · ${POS_LABEL[pos]} · ×${c.size.toFixed(2)}${c.bold ? ' · מודגש' : ''}` : 'ברירת מחדל'}>
     <Field label="כניסה"><Seg value={c.anim} options={[['rise', 'עלייה'], ['fade', 'עמעום'], ['words', 'מילה־מילה'], ['letters', 'אות־אות'], ['none', 'ללא']]} onChange={v => u({ anim: v as CaptionStyle['anim'] })} /></Field>
-    <div className="field-row"><Field label="מיקום"><Seg value={c.position} options={[['bottom', 'למטה'], ['center', 'מרכז'], ['top', 'למעלה']]} onChange={v => u({ position: v as CaptionStyle['position'] })} /></Field><Field label="יישור"><Seg value={c.align} options={[['right', 'ימין'], ['center', 'מרכז'], ['left', 'שמאל']]} onChange={v => u({ align: v as CaptionStyle['align'] })} /></Field></div>
-    <div className="field-row"><R label="גודל" value={c.size} min={0.5} max={2.5} step={0.05} fmt={v => `×${v.toFixed(2)}`} onChange={v => u({ size: v })} /><Field label="גופן"><Seg value={c.font} options={[['display', 'פרנק־רוהל'], ['ui', 'היבו']]} onChange={v => u({ font: v as CaptionStyle['font'] })} /></Field></div>
-    <div className="row wrap"><label className="chk"><input type="checkbox" checked={c.box} onChange={e => u({ box: e.target.checked })} /> תיבה כהה מאחורי הכיתוב</label>{s.captionStyle && <button className="btn sm ghost" onClick={() => set({ captionStyle: undefined })}>איפוס</button>}</div>
+    <Field label="מיקום"><Seg value={pos} options={[['bottom', 'למטה'], ['center', 'מרכז'], ['top', 'למעלה'], ['free', 'חופשי']]} onChange={v => v === 'free' ? u({ x: c.x ?? 6, y: c.y ?? 72 }) : u({ position: (v ?? 'bottom') as CaptionStyle['position'], x: undefined, y: undefined, w: undefined })} /></Field>
+    {free && <>
+      <div className="field-row"><R label="אופקי" value={c.x!} min={-20} max={100} step={0.5} fmt={v => `${v}%`} onChange={v => u({ x: v })} /><R label="אנכי" value={c.y!} min={-20} max={100} step={0.5} fmt={v => `${v}%`} onChange={v => u({ y: v })} /></div>
+      <R label="רוחב השורה" value={c.w ?? 0} min={0} max={100} step={1} fmt={v => v ? `${v}%` : 'אוטומטי'} onChange={v => u({ w: v || undefined })} />
+      <div className="muted small" style={{ marginTop: -6, marginBottom: 12 }}>אפשר גם לגרור את הכיתוב על התצוגה המקדימה.</div>
+    </>}
+    <div className="field-row"><Field label="יישור"><Seg value={c.align} options={[['right', 'ימין'], ['center', 'מרכז'], ['left', 'שמאל']]} onChange={v => u({ align: v as CaptionStyle['align'] })} /></Field><Field label="גופן"><Seg value={c.font} options={[['display', 'פרנק־רוהל'], ['ui', 'היבו']]} onChange={v => u({ font: v as CaptionStyle['font'] })} /></Field></div>
+    <R label="גודל" value={c.size} min={0.3} max={6} step={0.05} fmt={v => `×${v.toFixed(2)}`} onChange={v => u({ size: v })} />
+    <div className="row wrap" style={{ gap: '4px 14px' }}>
+      <label className="chk"><input type="checkbox" checked={!!c.bold} onChange={e => u({ bold: e.target.checked })} /> מודגש</label>
+      <label className="chk"><input type="checkbox" checked={!!c.underline} onChange={e => u({ underline: e.target.checked })} /> קו תחתון</label>
+      <label className="chk"><input type="checkbox" checked={c.box} onChange={e => u({ box: e.target.checked })} /> תיבה כהה מאחורי הכיתוב</label>
+      {s.captionStyle && <button className="btn sm ghost" onClick={() => set({ captionStyle: undefined })}>איפוס</button>}
+    </div>
+  </Section>;
+}
+
+/** Size, weight, alignment and free placement of the slide's built-in text blocks (TEXT_BLOCKS); photo captions have their own section. */
+function TextsSection({ s, set }: { s: Slide; set: (p: Record<string, unknown>) => void }) {
+  const blocks = TEXT_BLOCKS[s.type] ?? []; if (!blocks.length) return null;
+  const texts = s.texts ?? {}; const u = (k: string, p: Record<string, unknown>) => set({ texts: { ...texts, [k]: { ...texts[k], ...p } } });
+  const changed = blocks.filter(b => texts[b.key] && Object.values(texts[b.key]).some(v => v !== undefined)).map(b => b.label);
+  return <Section id="texts" icon={<Type />} title="מיקום וגודל הטקסטים" summary={changed.length ? changed.join(' · ') : 'ברירת מחדל'}>
+    <div className="muted small" style={{ marginBottom: 8 }}>אפשר גם לגרור כל כותרת או טקסט על התצוגה המקדימה.</div>
+    {blocks.map(b => { const t = texts[b.key] ?? {}; const free = t.x != null && t.y != null; return <div key={b.key} className="tx-block">
+      <div className="tx-h"><b>{b.label}</b>{Object.values(t).some(v => v !== undefined) && <button className="btn sm ghost" onClick={() => { const n = { ...texts }; delete n[b.key]; set({ texts: Object.keys(n).length ? n : undefined }); }}>איפוס</button>}</div>
+      <div className="field-row">
+        <Field label="מיקום"><Seg value={free ? 'free' : 'auto'} options={[['auto', 'קבוע'], ['free', 'חופשי']]} onChange={v => v === 'free' ? u(b.key, { x: t.x ?? 10, y: t.y ?? 40 }) : u(b.key, { x: undefined, y: undefined, w: undefined })} /></Field>
+        <Field label="יישור"><Seg value={t.align ?? 'auto'} options={[['auto', 'אוטו׳'], ['right', 'ימין'], ['center', 'מרכז'], ['left', 'שמאל']]} onChange={v => u(b.key, { align: !v || v === 'auto' ? undefined : v })} /></Field>
+      </div>
+      {free && <><div className="field-row"><R label="אופקי" value={t.x!} min={-20} max={100} step={0.5} fmt={v => `${v}%`} onChange={v => u(b.key, { x: v })} /><R label="אנכי" value={t.y!} min={-20} max={100} step={0.5} fmt={v => `${v}%`} onChange={v => u(b.key, { y: v })} /></div>
+        <R label="רוחב השורה" value={t.w ?? 0} min={0} max={100} step={1} fmt={v => v ? `${v}%` : 'אוטומטי'} onChange={v => u(b.key, { w: v || undefined })} /></>}
+      <R label="גודל" value={t.size ?? 1} min={0.3} max={6} step={0.05} fmt={v => `×${v.toFixed(2)}`} onChange={v => u(b.key, { size: v })} />
+      <div className="row wrap" style={{ gap: '4px 14px', marginBottom: 6 }}><label className="chk"><input type="checkbox" checked={!!t.bold} onChange={e => u(b.key, { bold: e.target.checked || undefined })} /> מודגש</label><label className="chk"><input type="checkbox" checked={!!t.underline} onChange={e => u(b.key, { underline: e.target.checked || undefined })} /> קו תחתון</label></div>
+    </div>; })}
   </Section>;
 }
 function LayersSection({ s }: { s: Slide }) {
@@ -176,6 +215,36 @@ function BulkInspector({ ids }: { ids: string[] }) {
   </>);
 }
 
+/** The slide's own song (optional) and what the music does when the slide starts: continue / lower / pause / stop / restart. */
+function MusicSection({ s, c, set }: { s: Slide; c: Chapter; set: (p: Record<string, unknown>) => void }) {
+  const show = useShow(st => st.show)!; const { assets, list } = useLibrary();
+  const music = list.filter(a => a.type === 'music' && a.status === 'ready'); const own = s.musicId ? assets[s.musicId] : undefined;
+  const cue = s.music ?? 'auto'; const isVideo = s.type === 'video'; const vm = show.settings.videoMusic;
+  const i = c.slides.findIndex(x => x.id === s.id); const rest = c.slides.slice(Math.max(0, i)).reduce((t, x) => t + slideSeconds(x, c, show.settings, assets), 0); // from here to the end of the chapter
+  const t = trackAt(show, c, s); const tn = t ? assets[t.musicId]?.name.replace(/\.[^.]+$/, '') : undefined;
+  const cueLabel = cue === 'auto' ? (isVideo ? VIDEO_MUSIC_LABEL[vm] : 'ממשיכה') : MUSIC_CUE_LABEL[cue];
+  const summary = own ? `${own.name.replace(/\.[^.]+$/, '')}${cue !== 'auto' ? ` · ${cueLabel}` : ''}` : cueLabel;
+  return <Section id="music" icon={<Music />} title="מוזיקה בשקופית" summary={summary}>
+    <Field label="שיר שמתחיל בשקופית הזו"><select value={s.musicId ?? ''} onChange={e => set({ musicId: e.target.value || undefined, musicStartSec: 0 })}><option value="">ללא — ממשיך מה שכבר מתנגן{tn && !own ? ` („${tn}”)` : ''}</option>{music.map(a => <option key={a.id} value={a.id}>{a.name.replace(/\.[^.]+$/, '')} · {fmtTime(a.duration ?? 0)}</option>)}</select></Field>
+    {own && <>
+      <Field label="נקודת התחלה" hint={fmtTime(s.musicStartSec ?? 0)}><Waveform peaks={own.peaks ?? []} duration={own.duration ?? 0} start={s.musicStartSec ?? 0} cover={rest} onStart={(sec) => set({ musicStartSec: sec })} /></Field>
+      <Field label="עוצמה" hint={`${Math.round((s.musicLevel ?? show.settings.musicLevel) * 100)}%`}><input type="range" min={0} max={1} step={.05} value={s.musicLevel ?? show.settings.musicLevel} onChange={e => set({ musicLevel: +e.target.value })} /></Field>
+      <div className="muted small">השיר הקודם דועך והשיר הזה נכנס במעבר רך (crossfade). הוא ממשיך לשקופיות הבאות עד שיר אחר, „שקט” או „נעצרת”.</div>
+    </>}
+    {!music.length && <div className="muted small">אין קטעי מוזיקה בספרייה. הניחו קבצים ב־media/music וסרקו.</div>}
+    <Field label="כשהשקופית מתחילה, המוזיקה"><Seg value={cue} options={[['auto', isVideo ? `לפי ההגדרות (${VIDEO_MUSIC_LABEL[vm]})` : 'כרגיל'], ['continue', 'ממשיכה'], ['duck', 'מונמכת'], ['pause', 'מושהית'], ['stop', 'נעצרת'], ['restart', 'מתחילה מחדש']]} onChange={v => set({ music: !v || v === 'auto' ? undefined : v })} /></Field>
+    <div className="muted small">
+      {cue === 'auto' && (isVideo ? 'ברירת המחדל לסרטונים נקבעת בהגדרות המצגת → שמע → „מוזיקה בזמן סרטון”.' : 'המוזיקה ממשיכה כרגיל.')}
+      {cue === 'continue' && 'המוזיקה ממשיכה בעוצמה מלאה, גם בזמן סרטון.'}
+      {cue === 'duck' && `המוזיקה יורדת ל־${Math.round(show.settings.duckLevel * 100)}% (הגדרות המצגת → שמע).`}
+      {cue === 'pause' && (isVideo ? 'המוזיקה דועכת, וחוזרת מאותה נקודה כשהסרטון נגמר.' : 'המוזיקה דועכת, וחוזרת מאותה נקודה בשקופית הבאה שבה היא „ממשיכה”.')}
+      {cue === 'stop' && 'המוזיקה דועכת ונעצרת. היא תחזור רק בשקופית או בפרק שנבחר להם שיר, או בשקופית עם „מתחילה מחדש”.'}
+      {cue === 'restart' && (tn ? `השיר „${tn}” מתחיל שוב מנקודת ההתחלה שלו.` : 'אין כאן שיר להתחיל מחדש — בחרו שיר לשקופית או לפרק.')}
+      {' '}משך הדעיכה: {show.settings.musicFadeSec.toFixed(1)}s (הגדרות המצגת).
+    </div>
+  </Section>;
+}
+
 function SlideInspector({ s, c }: { s: Slide; c: Chapter }) {
   const show = useShow(s0 => s0.show)!; const upd = useShow(st => st.updateSlide); const removeSlides = useShow(st => st.removeSlides); const dup = useShow(st => st.duplicateSlides); const { assets, list } = useLibrary();
   const setLocked = useShow(st => st.setLocked); const replaceAsset = useShow(st => st.replaceAssetInSlide); const setLayout = useShow(st => st.setCollageLayout);
@@ -186,32 +255,39 @@ function SlideInspector({ s, c }: { s: Slide; c: Chapter }) {
   const a = 'assetId' in s ? assets[s.assetId] : undefined;
   return (<>
     <div className="insp-title"><span className="ty">{TYPE_LABEL[s.type]}</span><span className="sub">{c.title} · {fmtTime(secs)}</span></div>
+    {/* actions stay visible at the top (sticky) instead of hiding below a long, scrolling form */}
+    <div className="insp-actions" data-tour="slide-actions">
+      <button className="btn sm" onClick={() => dup([s.id])} title="שכפל (Ctrl+D)"><Copy /> שכפל</button>
+      <LockButton locked={s.locked} onToggle={() => setLocked([s.id], !s.locked)} />
+      <button className="btn sm danger" onClick={() => { removeSlides([s.id]); toast('השקופית נמחקה · Ctrl+Z לביטול'); }} title="מחק (Delete)"><Trash2 /> מחק</button>
+      <button className="btn sm primary" onClick={() => window.open(`/show?from=${s.id}`, 'sy80-show')}><Play /> נגן מכאן</button>
+    </div>
     <Section id="content" icon={<FileText />} title="תוכן">
-      {s.type === 'intro' && <><Field label="שם"><input className="he" value={s.title} onChange={e => set({ title: e.target.value })} /></Field><Field label="המספר"><input value={s.number} onChange={e => set({ number: e.target.value })} style={{ width: 90 }} /></Field><Field label="כותרת משנה"><input className="he" value={s.subtitle ?? ''} onChange={e => set({ subtitle: e.target.value })} /></Field></>}
-      {s.type === 'chapter' && <><Field label="שורת פתיח קטנה"><input value={s.eyebrow ?? ''} onChange={e => set({ eyebrow: e.target.value })} placeholder="פרק" /></Field><Field label="כותרת"><input className="he" value={s.label} onChange={e => set({ label: e.target.value })} /></Field><Field label="שורת תיאור"><input className="he" value={s.blurb ?? ''} onChange={e => set({ blurb: e.target.value })} /></Field>
-        <Field label="תמונת רקע"><div className="row"><div className="asset-strip">{s.heroAssetId ? <Mini id={s.heroAssetId} onRemove={() => set({ heroAssetId: undefined })} /> : <div className="muted small">אין</div>}</div><button className="btn sm" disabled={pick.photos.length !== 1} onClick={() => { set({ heroAssetId: pick.photos[0] }); pick.clear(); }}><ImagePlus /> מהבחירה בספרייה</button></div></Field></>}
+      {s.type === 'intro' && <><Field label="שם"><textarea className="he" rows={2} value={s.title} onChange={e => set({ title: e.target.value })} /></Field><Field label="המספר"><input value={s.number} onChange={e => set({ number: e.target.value })} style={{ width: 90 }} /></Field><Field label="כותרת משנה"><textarea className="he" rows={2} value={s.subtitle ?? ''} onChange={e => set({ subtitle: e.target.value })} /></Field></>}
+      {s.type === 'chapter' && <><Field label="שורת פתיח קטנה"><input value={s.eyebrow ?? ''} onChange={e => set({ eyebrow: e.target.value })} placeholder="פרק" /></Field><Field label="כותרת"><textarea className="he" rows={2} value={s.label} onChange={e => set({ label: e.target.value })} /></Field><Field label="שורת תיאור"><textarea className="he" rows={2} value={s.blurb ?? ''} onChange={e => set({ blurb: e.target.value })} /></Field>
+        <Field label="תמונת רקע"><div className="row"><div className="asset-strip">{s.heroAssetId ? <Mini id={s.heroAssetId} onRemove={() => set({ heroAssetId: undefined })} /> : <div className="muted small">אין</div>}</div><button className="btn sm" disabled={pick.photos.length !== 1} title={pick.need('photo', 'one')} onClick={() => { set({ heroAssetId: pick.photos[0] }); pick.clear(); }}><ImagePlus /> מהבחירה בספרייה</button></div></Field></>}
       {s.type === 'photo' && <>
         <Field label="כיתוב"><textarea className="he" value={s.caption ?? ''} onChange={e => set({ caption: e.target.value })} rows={2} placeholder="מה רואים בתמונה, מי, איפה…" /></Field>
-        <div className="field-row"><Field label="שנה" hint={a?.year && a.year !== s.year ? `בקובץ: ${a.year}` : undefined}><input type="number" value={s.year ?? ''} onChange={e => set({ year: e.target.value ? +e.target.value : undefined })} /></Field>
+        <div className="field-row"><Field label="שנה" hint={show.settings.showYears ? 'מוצגת' : 'למיון בלבד'}><input type="number" value={s.year ?? ''} onChange={e => set({ year: e.target.value ? +e.target.value : undefined })} /></Field>
           <Field label="גרעין פילם"><Seg value={s.grain === undefined ? 'auto' : s.grain ? 'on' : 'off'} options={[['auto', 'אוטו׳'], ['on', 'כן'], ['off', 'לא']]} onChange={v => set({ grain: v === 'auto' ? undefined : v === 'on' })} /></Field></div>
         <Field label="תנועת מצלמה (Ken Burns)" hint={KB_LABEL[s.kenBurns ?? c.defaults?.kenBurns ?? 'in']}><KbPad value={s.kenBurns ?? c.defaults?.kenBurns ?? 'in'} onPick={k => set({ kenBurns: k })} /></Field>
         <Field label="נקודת מוקד" hint={`⁦${(s.focal ?? a?.focal ?? [50, 50]).join('% · ')}%⁩`}><div className="row"><span className="muted small grow">לחיצה על התמונה בתצוגה המקדימה</span><button className="btn sm ghost" onClick={() => set({ focal: undefined })}><RefreshCcw /> אוטומטי</button></div></Field>
-        <Field label="תמונה"><div className="row wrap"><div className="asset-strip"><Mini id={s.assetId} /></div><button className="btn sm" disabled={pick.photos.length !== 1} onClick={() => { set({ assetId: pick.photos[0], focal: undefined, year: assets[pick.photos[0]]?.year }); pick.clear(); }}><ImagePlus /> החלף מהבחירה</button><button className="btn sm" onClick={() => replaceSimilar(s.assetId)} title="תמונה אחרת מאותה תקופה שעדיין לא במצגת"><Shuffle /> תמונה דומה</button></div></Field>
+        <Field label="תמונה"><div className="row wrap"><div className="asset-strip"><Mini id={s.assetId} /></div><button className="btn sm" disabled={pick.photos.length !== 1} title={pick.need('photo', 'one')} onClick={() => { set({ assetId: pick.photos[0], focal: undefined, year: assets[pick.photos[0]]?.year }); pick.clear(); }}><ImagePlus /> החלף מהבחירה</button><button className="btn sm" onClick={() => replaceSimilar(s.assetId)} title="תמונה אחרת מאותה תקופה שעדיין לא במצגת"><Shuffle /> תמונה דומה</button></div></Field>
       </>}
       {s.type === 'photo-pair' && <>
         <Field label="שתי התמונות"><div className="row"><div className="asset-strip">{s.assetIds.map((id, i) => <Mini key={i} id={id} onClick={() => { if (pick.photos.length === 1) { const ids = [...s.assetIds] as [string, string]; ids[i] = pick.photos[0]; set({ assetIds: ids }); pick.clear(); } else toast('בחר תמונה אחת בספרייה ואז לחץ על התמונה להחלפה'); }} />)}</div><button className="btn sm" onClick={() => set({ assetIds: [s.assetIds[1], s.assetIds[0]] })}>החלף צדדים</button></div></Field>
-        <div className="field-row"><Field label="תגית ימין"><input value={s.tags?.[0] ?? ''} placeholder={assets[s.assetIds[0]]?.year ? String(assets[s.assetIds[0]]!.year) : 'שנה'} onChange={e => set({ tags: [e.target.value, s.tags?.[1] ?? ''] })} /></Field><Field label="תגית שמאל"><input value={s.tags?.[1] ?? ''} placeholder={assets[s.assetIds[1]]?.year ? String(assets[s.assetIds[1]]!.year) : 'שנה'} onChange={e => set({ tags: [s.tags?.[0] ?? '', e.target.value] })} /></Field></div>
-        <Field label="כיתוב"><input className="he" value={s.caption ?? ''} onChange={e => set({ caption: e.target.value })} /></Field>
+        <div className="field-row"><Field label="תגית ימין"><input value={s.tags?.[0] ?? ''} placeholder="תגית (אופציונלי)" onChange={e => set({ tags: [e.target.value, s.tags?.[1] ?? ''] })} /></Field><Field label="תגית שמאל"><input value={s.tags?.[1] ?? ''} placeholder="תגית (אופציונלי)" onChange={e => set({ tags: [s.tags?.[0] ?? '', e.target.value] })} /></Field></div>
+        <Field label="כיתוב"><textarea className="he" rows={2} value={s.caption ?? ''} onChange={e => set({ caption: e.target.value })} /></Field>
       </>}
       {s.type === 'collage' && <>
         <Field label={`תמונות (${s.assetIds.length}/6) · ★ = ראשית`}><div className="asset-strip">{s.assetIds.map((id, i) => <Mini key={id + i} id={id} hero={(s.heroIndex ?? 0) === i} onHero={() => set({ heroIndex: i })} onRemove={() => s.assetIds.length > 2 && set({ assetIds: s.assetIds.filter((_, j) => j !== i), heroIndex: 0 })} />)}</div></Field>
-        <div className="row wrap" style={{ marginBottom: 10 }}><button className="btn sm" disabled={!pick.photos.length || s.assetIds.length + pick.photos.length > 6} onClick={() => { set({ assetIds: [...s.assetIds, ...pick.photos.filter(id => !s.assetIds.includes(id))].slice(0, 6) }); pick.clear(); }}><Plus /> הוסף מהבחירה ({pick.photos.length})</button>
+        <div className="row wrap" style={{ marginBottom: 10 }}><button className="btn sm" disabled={!pick.photos.length || s.assetIds.length + pick.photos.length > 6} title={!pick.photos.length ? pick.need('photo', 'some') : s.assetIds.length + pick.photos.length > 6 ? `קולאז׳ מכיל עד 6 תמונות (יש ${s.assetIds.length}, נבחרו ${pick.photos.length})` : pick.need('photo', 'some')} onClick={() => { set({ assetIds: [...s.assetIds, ...pick.photos.filter(id => !s.assetIds.includes(id))].slice(0, 6) }); pick.clear(); }}><Plus /> הוסף מהבחירה ({pick.photos.length})</button>
           <button className="btn sm" onClick={() => { const used = usedAssetIds(show); for (const id of s.assetIds) { const a = assets[id]; const to = a && similarUnused(a, list, used); if (to) { replaceAsset(s.id, id, to); used.add(to.id); } } toast('התמונות הוחלפו בדומות שלא בשימוש', 'ok'); }} title="החלף את כל תמונות הקולאז׳ בתמונות דומות שלא בשימוש"><Shuffle /> ערבב תמונות</button></div>
         <Field label="פריסה"><div className="layout-pick">{COLLAGE_LAYOUTS.map(l => { const ok = layoutsFor(s.assetIds.length).includes(l); return <button key={l} disabled={!ok} aria-pressed={(s.layout ?? (s.assetIds.length === 2 ? 'two-up' : s.assetIds.length === 6 ? 'mosaic-6' : 'hero-right')) === l} onClick={() => setLayout(s.id, l)} title={COLLAGE_LAYOUT_LABEL[l]}><LayoutIcon l={l} /><span>{COLLAGE_LAYOUT_LABEL[l]}</span></button>; })}</div></Field>
-        <Field label="כיתוב"><input className="he" value={s.caption ?? ''} onChange={e => set({ caption: e.target.value })} /></Field>
+        <Field label="כיתוב"><textarea className="he" rows={2} value={s.caption ?? ''} onChange={e => set({ caption: e.target.value })} /></Field>
       </>}
       {s.type === 'timeline' && <>
-        <Field label="כותרת"><input className="he" value={s.title ?? ''} onChange={e => set({ title: e.target.value })} /></Field>
+        <Field label="כותרת"><textarea className="he" rows={1} value={s.title ?? ''} onChange={e => set({ title: e.target.value })} /></Field>
         <Field label="אבני דרך (שנה · תיאור · תמונה)"><div className="list-edit">{s.milestones.map((m, i) => <div className="item" key={i}><input type="number" value={m.year} onChange={e => upd(s.id, sl => { (sl as any).milestones[i].year = +e.target.value; })} /><input className="he" value={m.label} onChange={e => upd(s.id, sl => { (sl as any).milestones[i].label = e.target.value; })} /><div className="mini" title="לחיצה: תמונה מהבחירה בספרייה" onClick={() => { if (pick.photos.length === 1) { upd(s.id, sl => { (sl as any).milestones[i].assetId = pick.photos[0]; }); pick.clear(); } else toast('בחר תמונה אחת בספרייה ואז לחץ כאן'); }}>{m.assetId && assets[m.assetId] && <img src={assetThumb(assets[m.assetId])} alt="" />}</div><button className="btn ghost sm icon" onClick={() => upd(s.id, sl => { (sl as any).milestones.splice(i, 1); })}><X /></button></div>)}</div></Field>
         <button className="btn sm" onClick={() => upd(s.id, sl => { (sl as any).milestones.push({ year: 2000, label: '' }); (sl as any).milestones.sort((x: any, y: any) => x.year - y.year); })}><Plus /> אבן דרך</button>
       </>}
@@ -224,16 +300,16 @@ function SlideInspector({ s, c }: { s: Slide; c: Chapter }) {
           <div className="muted small" style={{ marginBottom: 10 }}>{a.portrait ? 'סרטון לאורך — רקע מטושטש אוטומטי' : 'סרטון לרוחב'} · {a.width}×{a.height} · {fmtTime(a.duration ?? 0)}{a.loudnessGain != null ? ` · עוצמה תוקנה ${a.loudnessGain > 0 ? '+' : ''}${a.loudnessGain} dB` : ''}</div>
         </>}
         <Field label="בסיום הסרטון"><Seg value={s.hold ? 'hold' : 'auto'} options={[['auto', 'המשך אוטומטית'], ['hold', 'חכה ללחיצה']]} onChange={v => set({ hold: v === 'hold' })} /></Field>
-        <Field label="סרטון"><div className="row"><div className="asset-strip"><Mini id={s.assetId} /></div><button className="btn sm" disabled={pick.videos.length !== 1} onClick={() => { const v = assets[pick.videos[0]]; set({ assetId: v.id, name: v.name.replace(/\.[^.]+$/, ''), trimIn: undefined, trimOut: undefined }); pick.clear(); }}><ImagePlus /> החלף מהבחירה</button></div></Field>
+        <Field label="סרטון"><div className="row"><div className="asset-strip"><Mini id={s.assetId} /></div><button className="btn sm" disabled={pick.videos.length !== 1} title={pick.need('video', 'one')} onClick={() => { const v = assets[pick.videos[0]]; set({ assetId: v.id, name: v.name.replace(/\.[^.]+$/, ''), trimIn: undefined, trimOut: undefined }); pick.clear(); }}><ImagePlus /> החלף מהבחירה</button></div></Field>
       </>}
-      {s.type === 'video-wall' && <><Field label="כותרת"><input className="he" value={s.title ?? ''} onChange={e => set({ title: e.target.value })} /></Field><Field label={`ברכות (${s.assetIds.length}/9)`}><div className="asset-strip">{s.assetIds.map((id, i) => <Mini key={id} id={id} onRemove={() => s.assetIds.length > 2 && set({ assetIds: s.assetIds.filter((_, j) => j !== i) })} />)}</div></Field><button className="btn sm" disabled={!pick.videos.length} onClick={() => { set({ assetIds: Array.from(new Set([...s.assetIds, ...pick.videos])).slice(0, 9) }); pick.clear(); }}><Plus /> הוסף מהבחירה ({pick.videos.length})</button></>}
+      {s.type === 'video-wall' && <><Field label="כותרת"><textarea className="he" rows={1} value={s.title ?? ''} onChange={e => set({ title: e.target.value })} /></Field><Field label={`ברכות (${s.assetIds.length}/9)`}><div className="asset-strip">{s.assetIds.map((id, i) => <Mini key={id} id={id} onRemove={() => s.assetIds.length > 2 && set({ assetIds: s.assetIds.filter((_, j) => j !== i) })} />)}</div></Field><button className="btn sm" disabled={!pick.videos.length} title={pick.need('video', 'some')} onClick={() => { set({ assetIds: Array.from(new Set([...s.assetIds, ...pick.videos])).slice(0, 9) }); pick.clear(); }}><Plus /> הוסף מהבחירה ({pick.videos.length})</button></>}
       {s.type === 'names' && <>
-        <Field label="כותרת"><input className="he" value={s.title ?? ''} onChange={e => set({ title: e.target.value })} /></Field>
+        <Field label="כותרת"><textarea className="he" rows={1} value={s.title ?? ''} onChange={e => set({ title: e.target.value })} /></Field>
         <Field label="אנשים (שם · תמונה)"><div className="list-edit">{s.people.map((p, i) => <div className="item" key={i} style={{ gridTemplateColumns: '1fr 54px 28px' }}><input className="he" value={p.name} onChange={e => upd(s.id, sl => { (sl as any).people[i].name = e.target.value; })} /><div className="mini" onClick={() => { if (pick.photos.length === 1) { upd(s.id, sl => { (sl as any).people[i].assetId = pick.photos[0]; }); pick.clear(); } else toast('בחר תמונה אחת בספרייה ואז לחץ כאן'); }}>{p.assetId && assets[p.assetId] && <img src={assetThumb(assets[p.assetId])} alt="" />}</div><button className="btn ghost sm icon" onClick={() => upd(s.id, sl => { (sl as any).people.splice(i, 1); })}><X /></button></div>)}</div></Field>
-        <div className="row wrap"><button className="btn sm" onClick={() => upd(s.id, sl => { (sl as any).people.push({ name: '' }); })}><Plus /> אדם</button><button className="btn sm" disabled={!pick.photos.length} onClick={() => { upd(s.id, sl => { for (const id of pick.photos) (sl as any).people.push({ name: '', assetId: id }); }); pick.clear(); }}><ImagePlus /> מהבחירה ({pick.photos.length})</button></div>
+        <div className="row wrap"><button className="btn sm" onClick={() => upd(s.id, sl => { (sl as any).people.push({ name: '' }); })}><Plus /> אדם</button><button className="btn sm" disabled={!pick.photos.length} title={pick.need('photo', 'some')} onClick={() => { upd(s.id, sl => { for (const id of pick.photos) (sl as any).people.push({ name: '', assetId: id }); }); pick.clear(); }}><ImagePlus /> מהבחירה ({pick.photos.length})</button></div>
       </>}
-      {s.type === 'finale' && <><Field label="שורת סיום"><input className="he" value={s.text} onChange={e => set({ text: e.target.value })} /></Field><Field label="המספר"><input value={s.number} onChange={e => set({ number: e.target.value })} style={{ width: 90 }} /></Field></>}
-      {s.type === 'black' && <Field label="כיתוב קטן (אופציונלי)"><input className="he" value={s.caption ?? ''} onChange={e => set({ caption: e.target.value })} /></Field>}
+      {s.type === 'finale' && <><Field label="שורת סיום"><textarea className="he" rows={2} value={s.text} onChange={e => set({ text: e.target.value })} /></Field><Field label="המספר"><input value={s.number} onChange={e => set({ number: e.target.value })} style={{ width: 90 }} /></Field></>}
+      {s.type === 'black' && <Field label="כיתוב קטן (אופציונלי)"><textarea className="he" rows={2} value={s.caption ?? ''} onChange={e => set({ caption: e.target.value })} /></Field>}
     </Section>
     <Section id="timing" icon={<Clock />} title="תזמון ומעבר" summary={`${hasSeconds ? `${secs}s · ` : ''}${TRANSITION_LABEL[s.transition ?? c.defaults?.transition ?? show.settings.defaultTransition]}${(s.advance ?? 'auto') === 'manual' ? ' · לחיצה' : ''}`}>
       {hasSeconds && <Field label="משך" hint={`${secs}s${!s.seconds ? ' (ברירת מחדל)' : ''}`}><input type="range" min={2} max={30} step={.5} value={secs} onChange={e => set({ seconds: +e.target.value })} /></Field>}
@@ -241,14 +317,15 @@ function SlideInspector({ s, c }: { s: Slide; c: Chapter }) {
       {s.type !== 'video' && s.type !== 'black' && <Field label="התקדמות"><Seg value={s.advance ?? 'auto'} options={[['auto', 'אוטומטי'], ['manual', 'חכה ללחיצה']]} onChange={v => set({ advance: v })} /></Field>}
       <Field label="הערות למציג"><textarea value={s.notes ?? ''} rows={2} onChange={e => set({ notes: e.target.value })} placeholder="מה לומר כשהשקופית מופיעה…" /></Field>
     </Section>
-    {['photo', 'photo-pair', 'collage', 'chapter', 'video', 'video-wall'].includes(s.type) && <LookSection s={s} set={set} />}
+    <MusicSection s={s} c={c} set={set} />
+    {s.type !== 'black' && <LookSection s={s} set={set} />}
     {s.type === 'photo' && <FrameSection s={s} set={set} />}
     {['photo', 'photo-pair', 'collage'].includes(s.type) && <CaptionSection s={s} set={set} />}
+    <TextsSection s={s} set={set} />
     <LayersSection s={s} />
     <Section id="theme" icon={<Palette />} title="ערכת צבעים לשקופית" summary={s.theme ? themeById(s.theme).name : 'כמו הפרק'}>
       <Field label="ערכה"><select value={s.theme ?? ''} onChange={e => set({ theme: e.target.value || undefined })}><option value="">כמו הפרק / המצגת ({themeById(c.theme ?? show.settings.theme).name})</option>{THEMES_LIST.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field>
     </Section>
-    <div className="insp-section"><div className="row wrap"><button className="btn sm" onClick={() => dup([s.id])}><Copy /> שכפל</button><LockButton locked={s.locked} onToggle={() => setLocked([s.id], !s.locked)} /><button className="btn sm danger" onClick={() => removeSlides([s.id])}><Trash2 /> מחק</button><button className="btn sm primary" onClick={() => window.open(`/show?from=${s.id}`, 'sy80-show')}><Play /> נגן מכאן</button></div>
-      {s.auto && <div className="muted small" style={{ marginTop: 6 }}><Sparkles style={{ width: 11, height: 11, verticalAlign: -1 }} /> נוצרה אוטומטית{s.locked ? ' · נעולה' : ' · יצירה מחדש תחליף אותה אלא אם תנעל'}</div>}</div>
+    {s.auto && <div className="insp-section"><div className="muted small"><Sparkles style={{ width: 11, height: 11, verticalAlign: -1 }} /> נוצרה אוטומטית{s.locked ? ' · נעולה' : ' · יצירה מחדש תחליף אותה אלא אם תנעל'}</div></div>}
   </>);
 }

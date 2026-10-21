@@ -20,7 +20,7 @@ export function ShowPage() {
   // create the player once data is present
   useEffect(() => {
     if (!show || !loaded || !host.current || player.current) return;
-    const p = new Player(host.current, () => useShow.getState().show, () => useLibrary.getState().assets);
+    const p = new Player(host.current, () => useShow.getState().show, () => useLibrary.getState().assets, { fullscreenEl: host.current.parentElement ?? undefined });
     player.current = p;
     const bc = new BroadcastChannel(CHANNEL);
     let rehearsed = false;
@@ -48,7 +48,7 @@ export function ShowPage() {
   // HUD shows on mouse movement, hides after a moment
   useEffect(() => { const onMove = () => { setHud(true); window.clearTimeout(hudTimer.current); hudTimer.current = window.setTimeout(() => setHud(false), 2600); }; window.addEventListener('mousemove', onMove); onMove(); return () => window.removeEventListener('mousemove', onMove); }, []);
 
-  const start = () => { const p = player.current; if (!p) return; const from = new URLSearchParams(location.search).get('from') || undefined; p.start(from); void p.root.requestFullscreen?.().catch(() => {}); void (navigator as any).wakeLock?.request?.('screen').catch(() => {}); };
+  const start = () => { const p = player.current; if (!p) return; const from = new URLSearchParams(location.search).get('from') || undefined; p.start(from); void p.fullscreenTarget().requestFullscreen?.().catch(() => {}); void (navigator as any).wakeLock?.request?.('screen').catch(() => {}); };
 
   const total = show ? show.chapters.reduce((t, c) => t + c.slides.reduce((u, s) => u + slideSeconds(s, c, show.settings, assets), 0), 0) : 0;
   const slides = show ? show.chapters.reduce((n, c) => n + c.slides.length, 0) : 0;

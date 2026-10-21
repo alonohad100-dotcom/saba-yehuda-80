@@ -14,5 +14,5 @@ export function SlideView({ slide, ctx, animate = true, className, onPick, repla
     return () => { tl?.kill(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig, animate, replayKey]);
-  return <div ref={ref} className={className} style={{ position: 'absolute', inset: 0 }} onClick={onPick ? (e) => { if ((e.target as HTMLElement).closest('.ov')) return; const r = e.currentTarget.getBoundingClientRect(); onPick(Math.round((e.clientX - r.left) / r.width * 100), Math.round((e.clientY - r.top) / r.height * 100)); } : undefined} />;
+  return <div ref={ref} className={className} style={{ position: 'absolute', inset: 0 }} onClick={onPick ? (e) => { if ((e.target as HTMLElement).closest('.ov, .cap, [data-tx]')) return; const r = e.currentTarget.getBoundingClientRect(); onPick(Math.round((e.clientX - r.left) / r.width * 100), Math.round((e.clientY - r.top) / r.height * 100)); } : undefined} />;
 }

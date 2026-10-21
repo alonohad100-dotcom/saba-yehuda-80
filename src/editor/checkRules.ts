@@ -1,4 +1,4 @@
-import { type Show, type Asset, slideSeconds, slideAssetIds, fmtTime, TYPE_LABEL } from '@shared/model';
+import { type Show, type Asset, slideSeconds, slideAssetIds, fmtTime, TYPE_LABEL, trackAt } from '@shared/model';
 
 export interface Check { kind: 'ok' | 'warn' | 'bad'; text: string; slideId?: string; chapterId?: string }
 
@@ -8,10 +8,11 @@ export function runChecks(show: Show, assets: Record<string, Asset>, list: Asset
     if (!c.slides.length) out.push({ kind: 'warn', text: `פרק „${c.title}” ריק`, chapterId: c.id });
     const dur = c.slides.reduce((t, s) => t + slideSeconds(s, c, show.settings, assets), 0);
     const hasVisual = c.slides.some(s => s.type !== 'video' && s.type !== 'black');
-    if (!c.musicId && hasVisual) out.push({ kind: 'warn', text: `פרק „${c.title}”: אין מוזיקה`, chapterId: c.id });
+    if (!c.musicId && !c.musicOff && hasVisual && !trackAt(show, c, c.slides[0]) && !c.slides.some(s => s.musicId)) out.push({ kind: 'warn', text: `פרק „${c.title}”: אין מוזיקה`, chapterId: c.id });
     if (c.musicId) { const m = assets[c.musicId]; if (!m) out.push({ kind: 'bad', text: `פרק „${c.title}”: קובץ המוזיקה לא נמצא`, chapterId: c.id }); else if (m.duration && m.duration - (c.musicStartSec ?? 0) < dur) out.push({ kind: 'warn', text: `פרק „${c.title}”: המוזיקה קצרה ב־${fmtTime(dur - (m.duration - (c.musicStartSec ?? 0)))} — תתבצע חזרה עם crossfade`, chapterId: c.id }); }
     for (const s of c.slides) { n++;
       for (const id of slideAssetIds(s)) { used.add(id); const a = assets[id]; if (!a) out.push({ kind: 'bad', text: `שקופית ${n} (${TYPE_LABEL[s.type]}): קובץ מדיה לא נמצא בספרייה`, slideId: s.id, chapterId: c.id }); else if (a.status === 'error') out.push({ kind: 'bad', text: `שקופית ${n}: הקובץ ${a.name} נכשל בעיבוד`, slideId: s.id, chapterId: c.id }); else if (a.status === 'processing') out.push({ kind: 'warn', text: `שקופית ${n}: ${a.name} עדיין בעיבוד`, slideId: s.id, chapterId: c.id }); }
+      if (s.musicId && !assets[s.musicId]) out.push({ kind: 'bad', text: `שקופית ${n}: קובץ המוזיקה של השקופית לא נמצא`, slideId: s.id, chapterId: c.id });
       if (s.type === 'photo' && !s.caption) out.push({ kind: 'warn', text: `שקופית ${n} (${c.title}): תמונה ללא כיתוב`, slideId: s.id, chapterId: c.id });
       if (s.type === 'photo' && (s.seconds ?? 0) > 12) out.push({ kind: 'warn', text: `שקופית ${n}: ${s.seconds} שניות לתמונה אחת — ארוך`, slideId: s.id, chapterId: c.id });
       if (s.type === 'video' && !s.name) out.push({ kind: 'warn', text: `שקופית ${n}: ברכה ללא שם מברך/ת`, slideId: s.id, chapterId: c.id });

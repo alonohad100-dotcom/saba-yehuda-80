@@ -203,3 +203,28 @@ Defects found and fixed during this work are listed in docs/UI-PLAN.md section 7
 - [ ] Build the real show in the editor.
 - [ ] Rehearse on the TV with sound; set music level and duck level in Settings to taste.
 - [ ] Record the backup MP4 (docs/RUNBOOK.md).
+
+## 13. Real-input wiring audit (21 Oct 2026, first hands-on use)
+
+Ohad's first session with the app found controls that did nothing: the add-text / symbol / shape / image buttons, no visible way to delete a slide, no way to make a collage. All earlier suites drive the UI with `element.click()`, which fires handlers on elements a mouse cannot reach, so a whole class of defects (covered, clipped or hidden controls) was invisible to them. `scripts/audit-wiring.mjs` (`npm run audit:wiring`) now drives everything with real mouse and keyboard input and applies two rules in every screen state: a visible enabled control must be hit-testable at its centre, and a visible disabled control must carry a reason (title or tooltip). It then exercises every feature end to end and restores the show it found. 262 checks, all passing on the final build, zero console or network errors.
+
+Defects found and fixed:
+
+| Defect | Cause | Fix |
+|---|---|---|
+| Add text / symbol / shape menu never appeared | the menu was a child of `.btn-group`, which clips its overflow | menu moved outside the group (`Preview.tsx`) |
+| "No way to delete a slide" | the action row sat at the bottom of a scrolling inspector | sticky action row under the inspector title for slides and chapters; hover duplicate/delete buttons on every card; right-click menu on cards (play from here, duplicate, lock, delete) |
+| "No way to make a collage" | collage / pair / add buttons were disabled with no explanation when nothing (or nothing suitable) was selected; the `+` menu offered text slides only | `+` menu gained תמונה / ברכה, זוג, קולאז׳ from the library selection with the reason shown on disabled items; library footer buttons explain themselves; every "from the library selection" button in the inspector explains what to select |
+| **Show HUD, start gate and end card invisible in fullscreen** | the Start click put the `.player` element into fullscreen; a fullscreen element is painted alone in the top layer, and the HUD was its sibling. On the TV there would have been no HUD, no progress bar, no "paused" / "waiting for click" indicator | the page container (`.showpage`) is now the fullscreen element (`engine.ts` `fullscreenTarget()`, `ShowPage.tsx`) |
+| **Undo / redo were never saved** | the autosave subscriber reacts to a `show` change while the state is `dirty`; the temporal store restores `show` first and `dirty` is set afterwards, so neither change triggered a save. Ctrl+Z looked right on screen and was lost on reload | `markDirty()` schedules the save itself (`store/show.ts`) |
+| Wizard: a folder could not be unchecked while "all folders" was active | an empty folder list means "all"; removing one from an empty list left it empty | the list is spelled out before the first exclusion (`AutoShowDialog.tsx`) |
+| Preview stage overflowed the tools after the window got narrower | the stage's fixed width kept `.stage-wrap` from shrinking, so the resize observer never fired | `min-width: 0; overflow: hidden` on the wrap |
+| DVD `.vob` and other legacy video files silently ignored | not in the extension list | VOB, MPG/MPEG, WMV, FLV, TS, M2TS accepted (ffmpeg decodes them); any other unknown extension is reported in the scan warnings |
+| Disabled controls with no reason (chapter move buttons, version label button, tour "previous", wizard chapter select, selection-dependent buttons) | — | titles added |
+| Slide type label "פרק" was ambiguous next to the chapter inspector | — | type label is now "כותרת פרק" |
+
+Verified not to be defects, after reproduction: double-click on cards and assets (works; the audit had used a synthetic double-click Chrome does not honour), Suez One's "8o"-looking zero (the typeface's own design, see below), the inspector drawer at 1100 px and the presenter's black-screen fade (both only failed while the page was a background tab, where Chrome produces no frames).
+
+Open design note: Suez One draws the zero with an old-style, x-height-tall shape, so the hero "80" reads as "8o" in the eight themes that use it for numerals. It is deliberate typography, not a loading failure (verified with `document.fonts.check` and glyph widths). If it bothers the family, switch the numeral face of those themes in `shared/themes.ts` to Secular One or Rubik 700, which have lining zeros.
+
+Regression on the final build: `npm run audit:wiring` 262/262 and all previous suites rerun; results in the table of section 11 still hold (see the suite log of this session).
